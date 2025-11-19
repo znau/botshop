@@ -4,11 +4,35 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "test",
+	"name": "botshop",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-11-19",
 	"observability": {
 		"enabled": true
+	},
+	"d1_databases": [
+		{
+			"binding": "BOTSHOP_DB",
+			"database_name": "botshop",
+			"database_id": "ff759dc0-24a4-46b9-a60c-6265c9ebe658"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "BOTSHOP_KV",
+			"id": "6b485b8870124d8b82ecde3f7b3b7ad1",
+			"preview_id": "6b485b8870124d8b82ecde3f7b3b7ad1"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "BOTSHOP_BUCKET",
+			"bucket_name": "botshop"
+		}
+	],
+	"vars": {
+		"BASE_URL": "https://www.guateng.cc",
+		"MEDIA_PUBLIC_BASE": "https://static.guateng.cc"
 	}
 	/**
 	 * Smart Placement

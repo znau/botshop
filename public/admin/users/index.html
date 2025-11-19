@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>用户概览 · Botshop</title>
+	<link rel="stylesheet" href="/admin/assets/styles.css" />
+</head>
+<body data-page="users">
+	<div class="app-shell">
+		<aside class="sidebar">
+			<div class="brand">
+				<p class="muted">Botshop</p>
+				<h1>控制面板</h1>
+				<p>管理员：<span data-admin-name>...</span></p>
+			</div>
+			<nav class="nav">
+				<a class="nav-link" href="/admin/categories">分类管理</a>
+				<a class="nav-link" href="/admin/products">商品管理</a>
+				<a class="nav-link" href="/admin/orders">订单管理</a>
+				<a class="nav-link active" href="/admin/users">用户概览</a>
+			</nav>
+			<button class="danger" data-logout>退出登录</button>
+		</aside>
+		<main class="main">
+			<header class="page-header">
+				<div>
+					<p class="muted">管理后台</p>
+					<h2>用户概览</h2>
+					<p class="muted">查看用户基础信息与下单次数。</p>
+				</div>
+				<div class="status-bar" data-status>准备就绪</div>
+			</header>
+			<section class="panel">
+				<div class="panel-header">
+					<div>
+						<h3>用户概览</h3>
+						<p class="muted">查看 Telegram 用户及活跃度。</p>
+					</div>
+					<button class="secondary" data-action="refresh-users">刷新</button>
+				</div>
+				<div class="table-wrapper" style="margin-top: 24px;">
+					<table data-table="users">
+						<thead>
+							<tr><th>ID</th><th>Telegram</th><th>下单次数</th><th>最近活跃</th></tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+				</div>
+			</section>
+		</main>
+	</div>
+	<script type="module" src="/admin/assets/shared.js"></script>
+	<script type="module" src="/admin/assets/pages/users.js"></script>
+</body>
+</html>

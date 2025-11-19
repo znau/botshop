@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>分类管理 · Botshop</title>
+	<link rel="stylesheet" href="/admin/assets/styles.css" />
+</head>
+<body data-page="categories">
+	<div class="app-shell">
+		<aside class="sidebar">
+			<div class="brand">
+				<p class="muted">Botshop</p>
+				<h1>控制面板</h1>
+				<p>管理员：<span data-admin-name>...</span></p>
+			</div>
+			<nav class="nav">
+				<a class="nav-link active" href="/admin/categories">分类管理</a>
+				<a class="nav-link" href="/admin/products">商品管理</a>
+				<a class="nav-link" href="/admin/orders">订单管理</a>
+				<a class="nav-link" href="/admin/users">用户概览</a>
+			</nav>
+			<button class="danger" data-logout>退出登录</button>
+		</aside>
+		<main class="main">
+			<header class="page-header">
+				<div>
+					<p class="muted">管理后台</p>
+					<h2>分类管理</h2>
+					<p class="muted">维护前台目录结构与排序。</p>
+				</div>
+				<div class="status-bar" data-status>准备就绪</div>
+			</header>
+			<section class="panel">
+				<div class="panel-header">
+					<div>
+						<h3>分类列表</h3>
+						<p class="muted">管理商品分类的展示顺序与文案。</p>
+					</div>
+					<button class="secondary" data-action="refresh-categories">刷新</button>
+				</div>
+				<div class="grid two" style="margin-top: 24px;">
+					<div class="table-wrapper">
+						<table data-table="categories">
+							<thead>
+								<tr><th>名称</th><th>描述</th><th>排序</th><th>状态</th><th>操作</th></tr>
+							</thead>
+							<tbody></tbody>
+						</table>
+					</div>
+					<div>
+						<form id="category-form">
+							<label>ID<input name="id" placeholder="创建时留空" readonly /></label>
+							<label>名称<input name="name" required /></label>
+							<label>描述<textarea name="description"></textarea></label>
+							<label>Emoji<input name="emoji" maxlength="4" /></label>
+							<label>排序<input type="number" name="sortOrder" value="0" /></label>
+							<label>状态<select name="isActive"><option value="true">可用</option><option value="false">停用</option></select></label>
+							<div class="form-actions">
+								<button type="submit" class="primary">保存</button>
+								<button type="button" class="secondary" data-action="reset-category">重置</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</section>
+		</main>
+	</div>
+	<script type="module" src="/admin/assets/shared.js"></script>
+	<script type="module" src="/admin/assets/pages/categories.js"></script>
+</body>
+</html>
