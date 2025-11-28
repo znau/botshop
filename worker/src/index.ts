@@ -11,12 +11,12 @@ export default {
 		const url = new URL(req.url)
 
 		if (url.pathname.startsWith('/api/')) {
-			url.pathname = url.pathname.replace('/api', '')
+			// url.pathname = url.pathname.replace('/api', '')
 			req = new Request(url.toString(), req)
 			return app.fetch(req, env, ctx);
 		}
 
-		return env.assets.fetch(req);
+		return new Response('welcome!');
 	},
 
 	/**

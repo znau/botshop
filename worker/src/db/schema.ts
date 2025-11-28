@@ -1,6 +1,8 @@
-import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTableCreator, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-export const categories = sqliteTable('categories', {
+const createTable = sqliteTableCreator((name) => name);
+
+export const categories = createTable('categories', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
@@ -13,9 +15,9 @@ export const categories = sqliteTable('categories', {
 }, (table) => ({
   sortIdx: index('idx_categories_sort').on(table.sort),
   parentIdx: index('idx_categories_parent').on(table.parentId),
-}));
+});
 
-export const products = sqliteTable('products', {
+export const products = createTable('products', {
   id: text('id').primaryKey(),
   slug: text('slug').notNull(),
   categoryId: text('category_id').notNull().references(() => categories.id, { onDelete: 'cascade' }),
@@ -35,9 +37,9 @@ export const products = sqliteTable('products', {
   slugIdx: uniqueIndex('idx_products_slug').on(table.slug),
   categoryIdx: index('idx_products_category').on(table.categoryId),
   activeIdx: index('idx_products_active').on(table.isActive, table.sort),
-}));
+});
 
-export const users = sqliteTable('users', {
+export const users = createTable('users', {
   id: text('id').primaryKey(),
   nickname: text('nickname').notNull(),
   avatar: text('avatar').notNull(),
@@ -47,9 +49,9 @@ export const users = sqliteTable('users', {
   updatedAt: text('updated_at').notNull(),
 }, (table) => ({
   createdAtIdx: index('idx_users_created_at').on(table.createdAt),
-}));
+});
 
-export const userRegisters = sqliteTable('user_registers', {
+export const userRegisters = createTable('user_registers', {
   uid: text('uid').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
   source: text('source').notNull(),
   thirdId: integer('third_id').notNull(),
@@ -61,9 +63,9 @@ export const userRegisters = sqliteTable('user_registers', {
   updatedAt: text('updated_at').notNull(),
 }, (table) => ({
   thirdIdIdx: index('idx_registers_third_id').on(table.thirdId),
-}));
+});
 
-export const orders = sqliteTable('orders', {
+export const orders = createTable('orders', {
   id: text('id').primaryKey(),
   orderSn: text('order_sn').notNull(),
   uid: text('uid').notNull().references(() => users.id, { onDelete: 'cascade' }),

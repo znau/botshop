@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS user_registers (
 );
 CREATE INDEX IF NOT EXISTS idx_registers_third_id ON user_registers(third_id);
 
+-- orders 订单表
 CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY,
     order_sn TEXT NOT NULL,

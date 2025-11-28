@@ -51,6 +51,7 @@ export class TelegramBot {
 			message_id: messageId,
 			text,
 			parse_mode: options?.parseMode,
+			disable_web_page_preview: options?.disableWebPagePreview ?? true,
 			reply_markup: options?.replyMarkup,
 		});
 	}

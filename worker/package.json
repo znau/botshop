@@ -6,8 +6,7 @@
     "deploy": "wrangler deploy",
     "dev": "wrangler dev --config wrangler.jsonc",
     "start": "wrangler dev",
-    "cf-typegen": "wrangler types",
-    "admin:seed": "node scripts/seedAdmin.mjs"
+    "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "1.6.0",
