@@ -6,18 +6,19 @@ declare namespace Cloudflare {
 		mainModule: typeof import("./src/index");
 	}
 	interface Env {
+		ASSETS: Fetcher;
 		BOTSHOP_KV: KVNamespace;
-		BASE_URL: "https://www.guateng.cc";
-		MEDIA_PUBLIC_BASE: "https://static.guateng.cc";
-		PAYMENT_GATEWAY_URL: "https://www.guateng.cc/api/v1/pay";
-		TELEGRAM_BOT_TOKEN: "8334565225:AAFENOb2KWEJzY1GdoryggY1a8BEgIIxJIo";
-		TELEGRAM_SECRET_TOKEN: "sfxeJgqfFbsnabTtaYgWplaaamUWvJueKwsTeAPCiZY";
-		ADMIN_SESSION_SECRET: "5f414815e27a2f3954d633c612cf7a65";
-		PAYMENT_WEBHOOK_SECRET: "";
-		PAYMENT_API_KEY: "";
 		BOTSHOP_BUCKET: R2Bucket;
 		BOTSHOP_DB: D1Database;
-		ASSETS: Fetcher;
+		BASE_URL: "https://www.guateng.cc";
+		MEDIA_PUBLIC_BASE: "https://static.guateng.cc";
+		TELEGRAM_BOT_TOKEN: "8334565225:AAFENOb2KWEJzY1GdoryggY1a8BEgIIxJIo";
+		TELEGRAM_SECRET_TOKEN: "sfxeJgqfFbsnabTtaYgWplaaamUWvJueKwsTeAPCiZY";
+		JWT_ADMIN_SECRET: "aqWCejZwpb238mAbNi1BmG5ntCgHj4DE";
+		JWT_USER_SECRET: "5f414815e27a2f3954d633c612cf7a65";
+        PAYMENT_GATEWAY_URL: "";
+		PAYMENT_WEBHOOK_SECRET: "";
+		PAYMENT_API_KEY: "";
 	}
 }
 interface Env extends Cloudflare.Env {}

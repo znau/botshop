@@ -12,8 +12,15 @@ const base64urlDecode = (str) => {
 	return Uint8Array.from(atob(str), c => c.charCodeAt(0));
 };
 
+
+const resolveSecret = (c) => c.env.JWT_USER_SECRET ?? c.env.JWT_USER_SECRET;
+
 const jwtUtils = {
 	async generateToken(c, payload, expiresInSeconds) {
+		const secret = resolveSecret(c);
+		if (!secret) {
+			throw new Error('JWT_USER_SECRET not configured');
+		}
 		const header = {
 			alg: 'HS256',
 			typ: 'JWT'
@@ -34,7 +41,7 @@ const jwtUtils = {
 
 		const key = await crypto.subtle.importKey(
 			'raw',
-			encoder.encode(c.env.jwt_secret),
+			encoder.encode(secret),
 			{ name: 'HMAC', hash: 'SHA-256' },
 			false,
 			['sign']
@@ -47,6 +54,10 @@ const jwtUtils = {
 	},
 
 	async verifyToken(c, token) {
+		const secret = resolveSecret(c);
+		if (!secret) {
+			return null;
+		}
 		try {
 			const [headerB64, payloadB64, signatureB64] = token.split('.');
 
@@ -55,7 +66,7 @@ const jwtUtils = {
 			const data = `${headerB64}.${payloadB64}`;
 			const key = await crypto.subtle.importKey(
 				'raw',
-				encoder.encode(c.env.jwt_secret),
+				encoder.encode(secret),
 				{ name: 'HMAC', hash: 'SHA-256' },
 				false,
 				['verify']

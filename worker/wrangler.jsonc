@@ -7,6 +7,9 @@
 	"name": "botshop",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-11-19",
+	"build": {
+		"command": "npm run build:assets"
+	},
 	"observability": {
 		"enabled": true
 	},
@@ -40,17 +43,14 @@
 	"vars": {
 		"BASE_URL": "https://www.guateng.cc",
 		"MEDIA_PUBLIC_BASE": "https://static.guateng.cc",
-		"PAYMENT_GATEWAY_URL": "https://www.guateng.cc/api/v1/pay",
 		"TELEGRAM_BOT_TOKEN": "8334565225:AAFENOb2KWEJzY1GdoryggY1a8BEgIIxJIo",
 		"TELEGRAM_SECRET_TOKEN": "sfxeJgqfFbsnabTtaYgWplaaamUWvJueKwsTeAPCiZY",
-		"ADMIN_SESSION_SECRET": "5f414815e27a2f3954d633c612cf7a65",
+		"JWT_ADMIN_SECRET": "aqWCejZwpb238mAbNi1BmG5ntCgHj4DE",
+		"JWT_USER_SECRET": "5f414815e27a2f3954d633c612cf7a65",
 		"PAYMENT_WEBHOOK_SECRET": "",
+		"PAYMENT_GATEWAY_URL": "",
 		"PAYMENT_API_KEY": ""
 	}
-	// "build": {
-	// 	"command": "pnpm --prefix ../admin-web install && pnpm --prefix ../admin-web run build",
-	// 	"watch_dir": "public"
-	// }
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

@@ -5,21 +5,26 @@ declare global {
 	// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 	interface Env {
 		BOTSHOP_DB: D1Database;
-		TELEGRAM_BOT_TOKEN: string;
-		TELEGRAM_SECRET_TOKEN: string;
-		ADMIN_SESSION_SECRET: string;
 		BOTSHOP_KV: KVNamespace;
 		BOTSHOP_BUCKET: R2Bucket;
-		PAYMENT_GATEWAY_URL?: string;
-		PAYMENT_API_KEY?: string;
-		PAYMENT_WEBHOOK_SECRET: string;
 		BASE_URL?: string;
 		MEDIA_PUBLIC_BASE?: string;
+		TELEGRAM_BOT_TOKEN: string;
+		TELEGRAM_SECRET_TOKEN: string;
+		JWT_ADMIN_SECRET: string;
+		JWT_USER_SECRET?: string;
+		PAYMENT_WEBHOOK_SECRET: string;
+		PAYMENT_GATEWAY_URL?: string;
+		PAYMENT_API_KEY?: string;
 	}
 }
 
 export type AppVariables = {
 	adminUser?: string;
+	authUser?: {
+		uid: string;
+		nickname: string;
+	};
 };
 
 export type AppContext = Context<{ Bindings: Env; Variables: AppVariables }>;
@@ -174,7 +179,7 @@ export type InventoryUpload = z.infer<typeof InventoryUploadSchema>;
 
 export const AdminAccountSchema = z.object({
 	username: z.string().min(3).max(64),
-	passwordHash: z.string().min(10),
+	password: z.string().min(10),
 	salt: z.string().min(8),
 	createdAt: z.string(),
 	updatedAt: z.string(),

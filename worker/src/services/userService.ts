@@ -5,6 +5,8 @@ import type { createDb } from '../db';
 import { userRegisters, users } from '../db/schema';
 import type { TelegramUserPayload } from '../types';
 import type { SupportedLanguage } from '../i18n/i18n';
+import { generatePassword, generateSalt, hashPassword } from '../utils/common';
+import BizError from '../utils/bizError';
 
 export type LanguageCode = SupportedLanguage;
 export const LANGUAGE_CODES = ['zh', 'en'] as const satisfies ReadonlyArray<LanguageCode>;
@@ -18,9 +20,35 @@ export type UserProfile = {
 export type UserCredentials = {
     userId: string;
     username: string;
-    password: string;
     language: LanguageCode;
+    isNew: boolean;
+    plainPassword?: string;
 };
+
+export type TelegramRegistrationInput = {
+    source: 'telegram';
+    profile: TelegramUserPayload;
+    preferredLang?: LanguageCode;
+};
+
+export type AccountRegistrationInput = {
+    source: 'account';
+    username: string;
+    password: string;
+    nickname?: string;
+    language?: LanguageCode;
+    registerIp?: string;
+    thirdId?: number;
+};
+
+export type UserRegistrationInput = TelegramRegistrationInput | AccountRegistrationInput;
+
+const TELEGRAM_USERNAME_PREFIX = 'tel@';
+const TELEGRAM_PASSWORD_PREFIX = 'tel@';
+const ACCOUNT_DEFAULT_IP = 'web';
+
+const buildAvatarFromSeed = (seed: string) =>
+    `https://api.dicebear.com/7.x/initials/svg?radius=50&bold=true&seed=${encodeURIComponent(seed)}`;
 
 /**
  * Owns user onboarding, credential persistence, and language resolution.
@@ -77,7 +105,17 @@ export class UserService {
      * @param preferredLang Optional preferred language override.
      * @returns Credentials + language for downstream use.
      */
-    async getOrCreateUser(profile: TelegramUserPayload, preferredLang?: LanguageCode): Promise<UserCredentials> {
+    async getOrCreateUser(input: UserRegistrationInput): Promise<UserCredentials> {
+        if (input.source === 'telegram') {
+            return this.handleTelegramRegistration(input.profile, input.preferredLang);
+        }
+        return this.createAccountUser(input);
+    }
+
+    private async handleTelegramRegistration(
+        profile: TelegramUserPayload,
+        preferredLang?: LanguageCode,
+    ): Promise<UserCredentials> {
         const existing = await this.fetchUserWithRegister(profile.id);
         if (existing) {
             const interactionAt = dayjs().toISOString();
@@ -100,17 +138,21 @@ export class UserService {
             return {
                 userId: existing.user.id,
                 username: existing.register.username,
-                password: existing.register.password,
                 language,
+                isNew: false,
             };
         }
 
         const userId = uuidv4();
         const now = dayjs().toISOString();
         const nickname = profile.first_name ?? profile.username ?? `Guest${profile.id}`;
-        const avatar = profile.username ? `https://t.me/i/userpic/320/${profile.username}.jpg` : 'https://placehold.co/200x200';
-        const username = profile.username ? profile.username.toLowerCase() : `user_${profile.id}`;
-        const password = this.generatePassword();
+        const avatar = profile.username
+            ? `https://t.me/i/userpic/320/${profile.username}.jpg`
+            : 'https://placehold.co/200x200';
+        const username = `${TELEGRAM_USERNAME_PREFIX}${profile.id}`;
+        const plainPassword = `${TELEGRAM_PASSWORD_PREFIX}${generatePassword(8)}`;
+        const salt = generateSalt();
+        const password = await hashPassword(plainPassword, salt);
         const language = preferredLang ?? this.normalizeLanguage(profile.language_code);
 
         await this.db.insert(users).values({
@@ -129,13 +171,61 @@ export class UserService {
             thirdId: profile.id,
             username,
             password,
+            salt,
             registerIp: 'telegram',
             language,
             createdAt: now,
             updatedAt: now,
         });
 
-        return { userId, username, password, language };
+        return { userId, username, plainPassword, language, isNew: true };
+    }
+
+    private async createAccountUser(input: AccountRegistrationInput): Promise<UserCredentials> {
+        const normalizedUsername = input.username.trim().toLowerCase();
+        if (!normalizedUsername) {
+            throw new BizError('用户名不能为空', 400);
+        }
+
+        const existing = await this.fetchUserByUsername(normalizedUsername);
+        if (existing) {
+            throw new BizError('用户名已存在', 409);
+        }
+
+        const userId = uuidv4();
+        const now = dayjs().toISOString();
+        const nickname = input.nickname?.trim() || normalizedUsername;
+        const avatar = buildAvatarFromSeed(nickname || normalizedUsername);
+        const language = input.language ?? DEFAULT_LANGUAGE;
+        const salt = generateSalt();
+        const passwordHash = await hashPassword(input.password, salt);
+        const registerIp = input.registerIp ?? ACCOUNT_DEFAULT_IP;
+        const thirdId = input.thirdId ?? Date.now();
+
+        await this.db.insert(users).values({
+            id: userId,
+            nickname,
+            avatar,
+            isBlocked: 0,
+            lastInteractionAt: now,
+            createdAt: now,
+            updatedAt: now,
+        });
+
+        await this.db.insert(userRegisters).values({
+            uid: userId,
+            source: 'account',
+            thirdId,
+            username: normalizedUsername,
+            password: passwordHash,
+            salt,
+            registerIp,
+            language,
+            createdAt: now,
+            updatedAt: now,
+        });
+
+        return { userId, username: normalizedUsername, language, isNew: true };
     }
 
     /**
@@ -156,15 +246,14 @@ export class UserService {
         return record ?? null;
     }
 
-    /**
-     * Generates a short random password that avoids ambiguous characters.
-     * @param length Desired password length (default 10).
-     * @returns New password string.
-     */
-    private generatePassword(length = 10) {
-        const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789';
-        const bytes = new Uint8Array(length);
-        crypto.getRandomValues(bytes);
-        return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+    private async fetchUserByUsername(username: string): Promise<UserProfile | null> {
+        const [record] = await this.db
+            .select({ register: userRegisters, user: users })
+            .from(userRegisters)
+            .innerJoin(users, eq(userRegisters.uid, users.id))
+            .where(eq(userRegisters.username, username))
+            .limit(1);
+        return record ?? null;
     }
+
 }

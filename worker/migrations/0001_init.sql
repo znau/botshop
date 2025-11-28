@@ -53,16 +53,18 @@ CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC);
 -- user_register 用户注册信息表
 CREATE TABLE IF NOT EXISTS user_registers (
     uid TEXT PRIMARY KEY, -- 对应 users.id
-    source TEXT NOT NULL, -- 来源渠道 (e.g., telegram, website)
+    source TEXT NOT NULL, -- 来源渠道 (e.g., telegram, account)
     third_id INTEGER NOT NULL, -- 第三方平台用户ID (e.g., Telegram user ID)
     username TEXT NOT NULL,
     password TEXT NOT NULL,
+    salt TEXT NOT NULL DEFAULT '',
     register_ip TEXT NOT NULL,
     language TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_registers_third_id ON user_registers(third_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_registers_username ON user_registers(username);
 
 -- orders 订单表
 CREATE TABLE IF NOT EXISTS orders (

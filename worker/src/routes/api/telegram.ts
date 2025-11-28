@@ -2,6 +2,8 @@ import app from '../hono';
 import type { AppContext, TelegramUpdate } from "../../types";
 import { TelegramService } from '../../services/telegramService';
 
+// Telegram bot 
+
 app.get('/api/telegram/webhook', (c: AppContext) => c.json({ ok: true }));
 
 app.post('/api/telegram/webhook', async (c: AppContext) => {

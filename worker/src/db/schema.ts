@@ -57,6 +57,7 @@ export const userRegisters = createTable('user_registers', {
   thirdId: integer('third_id').notNull(),
   username: text('username').notNull(),
   password: text('password').notNull(),
+  salt: text('salt').notNull(),
   registerIp: text('register_ip').notNull(),
   language: text('language').notNull(),
   createdAt: text('created_at').notNull(),

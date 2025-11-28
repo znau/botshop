@@ -28,7 +28,7 @@ Cloudflare Worker powered Telegram 数字商品店铺，支持商品浏览、下
 | `BOTSHOP_BUCKET` | R2 | 商品图片/宣传素材存储桶 |
 | `TELEGRAM_BOT_TOKEN` | Secret | Telegram Bot API token |
 | `TELEGRAM_SECRET_TOKEN` | Secret | Telegram Webhook header 校验值 |
-| `ADMIN_SESSION_SECRET` | Secret | 后台登录会话 HMAC key（建议 32+ 字符） |
+| `JWT_ADMIN_SECRET` | Secret | 后台登录会话 HMAC key（建议 32+ 字符） |
 | `PAYMENT_WEBHOOK_SECRET` | Secret | 支付回调 HMAC key |
 | `PAYMENT_API_KEY` | Secret（可选） | 外部支付接口 token |
 | `PAYMENT_GATEWAY_URL` | Var（可选） | 自定义下单接口 URL |
@@ -62,7 +62,7 @@ Cloudflare Worker powered Telegram 数字商品店铺，支持商品浏览、下
 	wrangler secret put TELEGRAM_BOT_TOKEN
 	wrangler secret put TELEGRAM_SECRET_TOKEN
 	wrangler secret put PAYMENT_WEBHOOK_SECRET
-	wrangler secret put ADMIN_SESSION_SECRET
+	wrangler secret put JWT_ADMIN_SECRET
 	# 可选：
 	wrangler secret put PAYMENT_API_KEY
 	```

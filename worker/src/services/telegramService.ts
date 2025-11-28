@@ -151,19 +151,28 @@ export class TelegramService {
      */
     private async handleStart(chatId: number, telegramUser: TelegramUserPayload) {
         const preferred = this.userService.mapLanguage(telegramUser.language_code) ?? DEFAULT_LANGUAGE;
-        const credentials = await this.userService.getOrCreateUser(telegramUser, preferred);
+        const credentials = await this.userService.getOrCreateUser({
+            source: 'telegram',
+            profile: telegramUser,
+            preferredLang: preferred,
+        });
         const lang = credentials.language;
-        const welcomeLines = [
-            this.text('welcome.title', lang),
-            this.text('welcome.accountCreated', lang),
-            '',
-            this.text('welcome.credentials', lang, {
-                username: credentials.username,
-                password: credentials.password,
-            }),
-            '',
-            this.text('welcome.caution', lang),
-        ];
+        const welcomeLines = [this.text('welcome.title', lang)];
+
+        if (credentials.isNew && credentials.plainPassword) {
+            welcomeLines.push(
+                this.text('welcome.accountCreated', lang),
+                '',
+                this.text('welcome.credentials', lang, {
+                    username: credentials.username,
+                    password: credentials.plainPassword,
+                }),
+                '',
+                this.text('welcome.caution', lang),
+            );
+        } else {
+            welcomeLines.push(this.text('welcome.returning', lang));
+        }
 
         await this.bot.sendMessage(chatId, welcomeLines.join('\n'));
         await this.showMainMenu(chatId, lang);
@@ -440,7 +449,11 @@ export class TelegramService {
             return;
         }
 
-        const profile = await this.userService.getOrCreateUser(telegramUser, preferredLang);
+        const profile = await this.userService.getOrCreateUser({
+            source: 'telegram',
+            profile: telegramUser,
+            preferredLang,
+        });
         const lang = profile.language;
         const product = await this.productService.findActiveProduct(productId);
 
@@ -611,7 +624,7 @@ export class TelegramService {
             this.text('account.title', lang),
             this.text('account.nickname', lang, { nickname: profile.user.nickname }),
             this.text('account.username', lang, { username: profile.register.username }),
-            this.text('account.password', lang, { password: profile.register.password }),
+            this.text('account.passwordHidden', lang),
             this.text('account.registeredAt', lang, { time: profile.register.createdAt }),
             this.text('account.lastActive', lang, { time: profile.user.lastInteractionAt }),
         ];
@@ -690,7 +703,11 @@ export class TelegramService {
         }
 
         const preferred = this.userService.mapLanguage(target) ?? currentLang;
-        const profile = await this.userService.getOrCreateUser(telegramUser, preferred);
+        const profile = await this.userService.getOrCreateUser({
+            source: 'telegram',
+            profile: telegramUser,
+            preferredLang: preferred,
+        });
         const lang = profile.language;
         const confirmation = this.text('language.updated', lang, {
             languageName: this.text(`language.options.${lang}`, lang),

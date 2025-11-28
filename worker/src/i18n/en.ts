@@ -14,6 +14,7 @@ const en = {
 		title: 'Welcome to BotShop 🛒',
 		accountCreated: 'A dedicated account has been created for you. You can log in via any entry point.',
 		credentials: 'Username: {{username}}\nPassword: {{password}}',
+		returning: 'Welcome back! Jump right in using the menu below.',
 		caution: 'Keep this information safe. Contact support anytime for resets.',
 	},
 	menu: {
@@ -95,7 +96,7 @@ const en = {
 		title: '👤 Account Info',
 		nickname: 'Nickname: {{nickname}}',
 		username: 'Username: {{username}}',
-		password: 'Password: {{password}}',
+		passwordHidden: 'Password: encrypted (contact support to reset).',
 		registeredAt: 'Registered: {{time}}',
 		lastActive: 'Last active: {{time}}',
 	},
