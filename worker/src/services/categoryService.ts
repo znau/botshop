@@ -1,6 +1,7 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 import { createDb } from '../db';
 import { categories, products } from '../db/schema';
+import { CacheKey } from '../enum/cacheKey';
 import { KvCache } from '../utils/cache';
 import type { AppContext, CatalogNode, CatalogPayload } from '@/types';
 import { ProductService, serializeProduct } from './productService';
@@ -35,7 +36,7 @@ export class CategoryService {
      */
     async getActiveCategories() {
         return this.cache.withCache<CategoryRecord[]>(
-            'catalog:categories',
+            CacheKey.CATALOG_CATEGORIES,
             async () =>
                 this.db
                     .select()
@@ -74,7 +75,7 @@ export class CategoryService {
      */
     async getCategoryWithProducts(categoryId: string) {
         return this.cache.withCache<CategoryWithProducts | null>(
-            `catalog:category:${categoryId}`,
+            CacheKey.catalogCategory(categoryId),
             async () => {
                 const [category] = await this.db
                     .select()
