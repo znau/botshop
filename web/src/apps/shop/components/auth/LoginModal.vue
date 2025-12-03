@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { NModal, NCard, NForm, NFormItem, NInput, NButton, NSelect, useMessage } from 'naive-ui';
-import { useSessionStore } from '@/stores/session';
+import { useSessionStore } from '@shop/stores/session';
 
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (event: 'close'): void }>();

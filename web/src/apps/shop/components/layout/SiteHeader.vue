@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { NButton, NDropdown, NAvatar } from 'naive-ui';
-import { useSessionStore } from '@/stores/session';
+import { useSessionStore } from '@shop/stores/session';
 
 const emit = defineEmits<{ (event: 'request-login'): void }>();
 const route = useRoute();

@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { NButton, NTag } from 'naive-ui';
-import type { Product } from '@/types/api';
+import type { Product } from '@shop/types/api';
 
 const props = defineProps<{ product: Product }>();
 const router = useRouter();

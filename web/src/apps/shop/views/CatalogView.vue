@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { useCatalogStore } from '@/stores/catalog';
-import ProductCard from '@/components/catalog/ProductCard.vue';
+import { useCatalogStore } from '@shop/stores/catalog';
+import ProductCard from '@shop/components/catalog/ProductCard.vue';
 
 const route = useRoute();
 const router = useRouter();

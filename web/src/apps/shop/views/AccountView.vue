@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import { NButton, NCard } from 'naive-ui';
-import { useSessionStore } from '@/stores/session';
+import { useSessionStore } from '@shop/stores/session';
 
 const session = useSessionStore();
 const router = useRouter();

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import { shopApi } from '@/api/shop';
-import type { CatalogResponse, CategoryNode, Product } from '@/types/api';
+import { shopApi } from '@shop/api/shop';
+import type { CatalogResponse, CategoryNode, Product } from '@shop/types/api';
 
 type LoadState = 'idle' | 'loading' | 'ready' | 'error';
 

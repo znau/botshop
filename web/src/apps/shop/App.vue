@@ -2,10 +2,10 @@
 import { ref, watch } from 'vue';
 import { useRoute, useRouter, RouterView } from 'vue-router';
 import { NConfigProvider, NMessageProvider } from 'naive-ui';
-import SiteHeader from '@/components/layout/SiteHeader.vue';
-import SiteFooter from '@/components/layout/SiteFooter.vue';
-import LoginModal from '@/components/auth/LoginModal.vue';
-import { useSessionStore } from '@/stores/session';
+import SiteHeader from '@shop/components/layout/SiteHeader.vue';
+import SiteFooter from '@shop/components/layout/SiteFooter.vue';
+import LoginModal from '@shop/components/auth/LoginModal.vue';
+import { useSessionStore } from '@shop/stores/session';
 
 const showLogin = ref(false);
 const route = useRoute();

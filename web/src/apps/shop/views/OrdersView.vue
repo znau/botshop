@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useSessionStore } from '@/stores/session';
-import type { OrdersResponseItem } from '@/types/api';
+import { useSessionStore } from '@shop/stores/session';
+import type { OrdersResponseItem } from '@shop/types/api';
 
 const session = useSessionStore();
 const orders = ref<OrdersResponseItem[]>([]);

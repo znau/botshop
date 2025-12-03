@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router';
-import type { CategoryNode } from '@/types/api';
+import type { CategoryNode } from '@shop/types/api';
 
 const props = defineProps<{ categories: CategoryNode[] }>();
 </script>

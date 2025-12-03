@@ -2,10 +2,10 @@
 import { ref, watch, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { NButton, NAlert, useMessage } from 'naive-ui';
-import { shopApi } from '@/api/shop';
-import type { ProductDetailResponse, CheckoutResponse } from '@/types/api';
-import ProductCard from '@/components/catalog/ProductCard.vue';
-import { useSessionStore } from '@/stores/session';
+import { shopApi } from '@shop/api/shop';
+import type { ProductDetailResponse, CheckoutResponse } from '@shop/types/api';
+import ProductCard from '@shop/components/catalog/ProductCard.vue';
+import { useSessionStore } from '@shop/stores/session';
 
 const route = useRoute();
 const router = useRouter();

@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '@/views/HomeView.vue';
-import CatalogView from '@/views/CatalogView.vue';
-import ProductView from '@/views/ProductView.vue';
-import OrdersView from '@/views/OrdersView.vue';
-import AccountView from '@/views/AccountView.vue';
-import { useSessionStore } from '@/stores/session';
-import { pinia } from '@/stores';
+import HomeView from '@shop/views/HomeView.vue';
+import CatalogView from '@shop/views/CatalogView.vue';
+import ProductView from '@shop/views/ProductView.vue';
+import OrdersView from '@shop/views/OrdersView.vue';
+import AccountView from '@shop/views/AccountView.vue';
+import { useSessionStore } from '@shop/stores/session';
+import { pinia } from '@shop/stores';
 
 const router = createRouter({
   history: createWebHistory(),

@@ -10,7 +10,7 @@ import type {
   CheckoutPayload,
   UserProfile,
   RegisterPayload,
-} from '@/types/api';
+} from '@shop/types/api';
 
 type ApiResult<T> = Promise<T>;
 type AuthResponse = { token: string; user: UserProfile; expiresIn?: number };

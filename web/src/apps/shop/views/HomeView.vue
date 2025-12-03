@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
-import { useCatalogStore } from '@/stores/catalog';
-import ProductCard from '@/components/catalog/ProductCard.vue';
-import CategoryRail from '@/components/catalog/CategoryRail.vue';
+import { useCatalogStore } from '@shop/stores/catalog';
+import ProductCard from '@shop/components/catalog/ProductCard.vue';
+import CategoryRail from '@shop/components/catalog/CategoryRail.vue';
 
 const catalog = useCatalogStore();
 onMounted(() => {

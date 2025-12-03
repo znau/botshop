@@ -1,7 +1,13 @@
 import { defineStore } from 'pinia';
-import { shopApi } from '@/api/shop';
-import { setAuthToken } from '@/api/client';
-import type { UserProfile, OrdersResponseItem, ProfileResponse, LoginPayload, RegisterPayload } from '@/types/api';
+import { shopApi } from '@shop/api/shop';
+import { setAuthToken } from '@shop/api/client';
+import type {
+  UserProfile,
+  OrdersResponseItem,
+  ProfileResponse,
+  LoginPayload,
+  RegisterPayload,
+} from '@shop/types/api';
 
 const pickMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
