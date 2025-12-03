@@ -14,7 +14,7 @@ const resources = {
 } satisfies Record<SupportedLanguage, { translation: ZhTranslation | EnTranslation }>;
 
 const initOptions: InitOptions = {
-	fallbackLng: 'zh',
+	fallbackLng: 'en',
 	resources,
 	interpolation: { escapeValue: false },
 };
@@ -23,7 +23,7 @@ void i18next.init(initOptions);
 
 export const t = (
 	key: string,
-	lang: SupportedLanguage = 'zh',
+	lang: SupportedLanguage = 'en',
 	values?: Record<string, unknown>,
 ) => i18next.t(key, { lng: lang, ...(values ?? {}) });
 

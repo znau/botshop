@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { z } from "zod";
+import { ProductRecord } from "./services/categoryService";
 
 declare global {
 	// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
@@ -147,7 +148,7 @@ export type DeliveryRecord = z.infer<typeof DeliveryRecordSchema>;
 export const OrderSchema = z.object({
 	id: z.string(),
 	orderNo: z.string(),
-	userId: z.string(),
+	uid: z.string(),
 	telegramChatId: z.number(),
 	telegramUserId: z.number(),
 	productId: z.string(),
@@ -252,10 +253,97 @@ export const PaymentWebhookSchema = z.object({
 export type PaymentWebhookPayload = z.infer<typeof PaymentWebhookSchema>;
 
 export type CreateOrderInput = {
-	product: Product;
-	user: User;
-	chatId: number;
+	uid: string;
+	productId: string;
 	quantity: number;
+	currency?: string;
+};
+
+export type OrderCreationInput = {
+    orderId: string;
+    orderSn: string;
+    uid: string;
+    product: ProductRecord;
+    quantity: number;
+    unitAmount: number;
+    currency: string;
+    paymentInvoiceId: string;
+    paymentJson: string;
+    createdAt: string;
+    status?: string;
+};
+
+
+export type CatalogNode = {
+	id: string;
+	name: string;
+	description?: string | null;
+	emoji?: string | null;
+	parentId?: string | null;
+	sort: number;
+	products: SerializedProduct[];
+	children: CatalogNode[];
+};
+
+export type SerializedProduct = {
+	id: string;
+	slug: string;
+	title: string;
+	description?: string | null;
+	mediaUrl?: string | null;
+	priceMap: Record<string, number>;
+	priceLabel: string;
+	defaultCurrency: string;
+	stock: number;
+	deliveryMode: string;
+	deliveryInstructions?: string | null;
+	sort: number;
+	updatedAt: string;
+};
+
+
+export type CatalogPayload = {
+	generatedAt: string;
+	categories: CatalogNode[];
+};
+
+export type ProductDetailPayload = {
+	product: SerializedProduct & {
+		category: { id: string; name: string; emoji?: string | null };
+		attachment: string | null;
+	};
+	related: SerializedProduct[];
+};
+
+export type OrderSummary = {
+	id: string;
+	orderSn: string;
+	productTitle: string;
 	currency: string;
-	invoice: PaymentInvoice;
+	amount: number;
+	status: string;
+	createdAt: string;
+};
+
+export type ShopProfileView = {
+	id: string;
+	nickname: string;
+	username: string;
+	avatar: string;
+	language: string;
+};
+
+export type UserDashboardPayload = {
+	user: ShopProfileView;
+	orders: OrderSummary[];
+};
+
+export type OrderReceipt = {
+	orderSn: string;
+	product: SerializedProduct;
+	currency: string;
+	amount: number;
+	code: string | null;
+	instructions?: string | null;
+	attachment?: string | null;
 };

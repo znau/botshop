@@ -3,6 +3,7 @@ const app = new Hono();
 
 import result from '../utils/result';
 import { cors } from 'hono/cors';
+import { ApiCode, ApiMessage, apiCodeToHttpStatus } from '../enum/apiCodes';
 
 app.use('*', cors());
 
@@ -14,18 +15,24 @@ app.onError((err, c) => {
 	}
 
 	if (err.message === `Cannot read properties of undefined (reading 'get')`) {
-		return c.json(result.fail('KV数据库未绑定<br>KV database not bound',502));
+		return c.json(result.fail(ApiCode.DEPENDENCY_MISSING, 'KV数据库未绑定<br>KV database not bound'), 502);
 	}
 
 	if (err.message === `Cannot read properties of undefined (reading 'put')`) {
-		return c.json(result.fail('KV数据库未绑定<br>KV database not bound',502));
+		return c.json(result.fail(ApiCode.DEPENDENCY_MISSING, 'KV数据库未绑定<br>KV database not bound'), 502);
 	}
 
 	if (err.message === `Cannot read properties of undefined (reading 'prepare')`) {
-		return c.json(result.fail('D1数据库未绑定<br>D1 database not bound',502));
+		return c.json(result.fail(ApiCode.DEPENDENCY_MISSING, 'D1数据库未绑定<br>D1 database not bound'), 502);
 	}
 
-	return c.json(result.fail(err.message, err.code));
+	const candidateCode = (err as { code?: number }).code;
+	const apiCode =
+		typeof candidateCode === 'number' && Object.prototype.hasOwnProperty.call(ApiMessage, candidateCode)
+			? (candidateCode as ApiCode)
+			: ApiCode.INTERNAL_ERROR;
+	const status = apiCodeToHttpStatus(apiCode);
+	return c.json(result.fail(apiCode, err.message ?? ApiMessage[apiCode]), status);
 });
 
 export default app;

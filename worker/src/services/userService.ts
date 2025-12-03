@@ -1,16 +1,18 @@
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
 import { eq } from 'drizzle-orm';
-import type { createDb } from '../db';
+import { createDb } from '../db';
 import { userRegisters, users } from '../db/schema';
-import type { TelegramUserPayload } from '../types';
+import type { AppContext, TelegramUserPayload } from '../types';
 import type { SupportedLanguage } from '../i18n/i18n';
 import { generatePassword, generateSalt, hashPassword } from '../utils/common';
 import BizError from '../utils/bizError';
+import { ApiCode } from '../enum/apiCodes';
+import { sourceEnum, userNamePrefixEnum } from '@/enum/user';
 
 export type LanguageCode = SupportedLanguage;
 export const LANGUAGE_CODES = ['zh', 'en'] as const satisfies ReadonlyArray<LanguageCode>;
-export const DEFAULT_LANGUAGE: LanguageCode = 'zh';
+export const DEFAULT_LANGUAGE: LanguageCode = 'en';
 
 export type UserProfile = {
     register: typeof userRegisters.$inferSelect;
@@ -18,7 +20,7 @@ export type UserProfile = {
 };
 
 export type UserCredentials = {
-    userId: string;
+    uid: string;
     username: string;
     language: LanguageCode;
     isNew: boolean;
@@ -36,16 +38,12 @@ export type AccountRegistrationInput = {
     username: string;
     password: string;
     nickname?: string;
-    language?: LanguageCode;
+    language?: string;
     registerIp?: string;
     thirdId?: number;
 };
 
 export type UserRegistrationInput = TelegramRegistrationInput | AccountRegistrationInput;
-
-const TELEGRAM_USERNAME_PREFIX = 'tel@';
-const TELEGRAM_PASSWORD_PREFIX = 'tel@';
-const ACCOUNT_DEFAULT_IP = 'web';
 
 const buildAvatarFromSeed = (seed: string) =>
     `https://api.dicebear.com/7.x/initials/svg?radius=50&bold=true&seed=${encodeURIComponent(seed)}`;
@@ -54,10 +52,13 @@ const buildAvatarFromSeed = (seed: string) =>
  * Owns user onboarding, credential persistence, and language resolution.
  */
 export class UserService {
-    /**
-     * @param db Drizzle instance for user tables.
-     */
-    constructor(private readonly db: ReturnType<typeof createDb>) {}
+    private readonly c: AppContext;
+    private readonly db: ReturnType<typeof createDb>;
+
+    constructor(c: AppContext) {
+        this.c = c;
+        this.db = createDb(c.env);
+    }
 
     /**
      * Maps raw Telegram language hints into the supported enum.
@@ -106,12 +107,22 @@ export class UserService {
      * @returns Credentials + language for downstream use.
      */
     async getOrCreateUser(input: UserRegistrationInput): Promise<UserCredentials> {
-        if (input.source === 'telegram') {
-            return this.handleTelegramRegistration(input.profile, input.preferredLang);
+            switch (input.source) {
+            case sourceEnum.TELEGRAM:
+                return this.handleTelegramRegistration(input.profile, input.preferredLang);
+            case sourceEnum.ACCOUNT:
+                return this.createAccountUser(input);
+            default:
+                throw new BizError('Unsupported registration source', ApiCode.BAD_REQUEST);
         }
-        return this.createAccountUser(input);
     }
 
+    /**
+     * 
+     * @param profile 
+     * @param preferredLang 
+     * @returns 
+     */
     private async handleTelegramRegistration(
         profile: TelegramUserPayload,
         preferredLang?: LanguageCode,
@@ -136,27 +147,27 @@ export class UserService {
             }
 
             return {
-                userId: existing.user.id,
+                uid: existing.user.id,
                 username: existing.register.username,
                 language,
                 isNew: false,
             };
         }
 
-        const userId = uuidv4();
+        const uid = uuidv4();
         const now = dayjs().toISOString();
         const nickname = profile.first_name ?? profile.username ?? `Guest${profile.id}`;
         const avatar = profile.username
             ? `https://t.me/i/userpic/320/${profile.username}.jpg`
             : 'https://placehold.co/200x200';
-        const username = `${TELEGRAM_USERNAME_PREFIX}${profile.id}`;
-        const plainPassword = `${TELEGRAM_PASSWORD_PREFIX}${generatePassword(8)}`;
+        const username = userNamePrefixEnum[sourceEnum.TELEGRAM] + `${profile.id}`;
+        const plainPassword = generatePassword(8);
         const salt = generateSalt();
         const password = await hashPassword(plainPassword, salt);
         const language = preferredLang ?? this.normalizeLanguage(profile.language_code);
 
         await this.db.insert(users).values({
-            id: userId,
+            id: uid,
             nickname,
             avatar,
             isBlocked: 0,
@@ -166,7 +177,7 @@ export class UserService {
         });
 
         await this.db.insert(userRegisters).values({
-            uid: userId,
+            uid: uid,
             source: 'telegram',
             thirdId: profile.id,
             username,
@@ -178,32 +189,32 @@ export class UserService {
             updatedAt: now,
         });
 
-        return { userId, username, plainPassword, language, isNew: true };
+        return { uid, username, plainPassword, language, isNew: true };
     }
 
     private async createAccountUser(input: AccountRegistrationInput): Promise<UserCredentials> {
         const normalizedUsername = input.username.trim().toLowerCase();
         if (!normalizedUsername) {
-            throw new BizError('用户名不能为空', 400);
+            throw new BizError('用户名不能为空', ApiCode.BAD_REQUEST);
         }
 
         const existing = await this.fetchUserByUsername(normalizedUsername);
         if (existing) {
-            throw new BizError('用户名已存在', 409);
+            throw new BizError('用户名已存在', ApiCode.CONFLICT);
         }
 
-        const userId = uuidv4();
+        const uid = uuidv4();
         const now = dayjs().toISOString();
         const nickname = input.nickname?.trim() || normalizedUsername;
         const avatar = buildAvatarFromSeed(nickname || normalizedUsername);
         const language = input.language ?? DEFAULT_LANGUAGE;
         const salt = generateSalt();
-        const passwordHash = await hashPassword(input.password, salt);
-        const registerIp = input.registerIp ?? ACCOUNT_DEFAULT_IP;
+        const password = await hashPassword(input.password, salt);
+        const registerIp = input.registerIp ?? '';
         const thirdId = input.thirdId ?? Date.now();
 
         await this.db.insert(users).values({
-            id: userId,
+            id: uid,
             nickname,
             avatar,
             isBlocked: 0,
@@ -213,11 +224,11 @@ export class UserService {
         });
 
         await this.db.insert(userRegisters).values({
-            uid: userId,
+            uid: uid,
             source: 'account',
             thirdId,
             username: normalizedUsername,
-            password: passwordHash,
+            password: password,
             salt,
             registerIp,
             language,
@@ -225,7 +236,7 @@ export class UserService {
             updatedAt: now,
         });
 
-        return { userId, username: normalizedUsername, language, isNew: true };
+        return { uid, username: normalizedUsername, language, isNew: true };
     }
 
     /**

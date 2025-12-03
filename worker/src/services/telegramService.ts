@@ -1,5 +1,4 @@
 import { TelegramBot } from '../utils/telegramBot';
-import { createDb } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 import { t as translate } from '../i18n/i18n';
@@ -8,16 +7,19 @@ import type {
     TelegramMessage,
     TelegramCallbackQuery,
     TelegramUserPayload,
+    AppContext,
 } from '../types';
 import { CategoryService, type CategoryRecord } from './categoryService';
 import { OrderService } from './orderService';
-import { ProductService } from './productService';
+import { formatPriceLabel, parsePriceMap, ProductService } from './productService';
 import {
     UserService,
     DEFAULT_LANGUAGE,
     LANGUAGE_CODES,
     type LanguageCode,
 } from './userService';
+
+import { sourceEnum } from '@/enum/user';
 
 type InlineButton = { text: string; callback_data: string };
 
@@ -27,8 +29,8 @@ const CALLBACK_SEPARATOR = '|';
  * Orchestrates Telegram webhook updates, delegating domain work to sub-services.
  */
 export class TelegramService {
+    private readonly c: AppContext;
     private readonly bot: TelegramBot;
-    private readonly db: ReturnType<typeof createDb>;
     private readonly userService: UserService;
     private readonly categoryService: CategoryService;
     private readonly productService: ProductService;
@@ -37,13 +39,13 @@ export class TelegramService {
     /**
      * @param env Cloudflare bindings passed to downstream services.
      */
-    constructor(private readonly env: Env) {
-        this.bot = new TelegramBot(env);
-        this.db = createDb(env);
-        this.userService = new UserService(this.db);
-        this.categoryService = new CategoryService(env, this.db);
-        this.productService = new ProductService(env, this.db);
-        this.orderService = new OrderService(this.db);
+    constructor(c: AppContext) {
+        this.c = c;
+        this.bot = new TelegramBot(c.env);
+        this.userService = new UserService(c);
+        this.categoryService = new CategoryService(c);
+        this.productService = new ProductService(c);
+        this.orderService = new OrderService(c);
     }
 
     /**
@@ -152,7 +154,7 @@ export class TelegramService {
     private async handleStart(chatId: number, telegramUser: TelegramUserPayload) {
         const preferred = this.userService.mapLanguage(telegramUser.language_code) ?? DEFAULT_LANGUAGE;
         const credentials = await this.userService.getOrCreateUser({
-            source: 'telegram',
+            source: sourceEnum.TELEGRAM,
             profile: telegramUser,
             preferredLang: preferred,
         });
@@ -350,7 +352,7 @@ export class TelegramService {
         }
 
         const buttons = list.map((item) => ({
-            text: `${item.title} · ${this.productService.formatPriceLabel(item)}`,
+            text: `${item.title} · ${formatPriceLabel(item)}`,
             callback_data: this.cb('product', item.id),
         }));
 
@@ -403,7 +405,7 @@ export class TelegramService {
                 ? this.text('product.description', lang, { description: product.description })
                 : this.text('product.noDescription', lang),
             '',
-            this.text('product.price', lang, { price: this.productService.formatPriceLabel(product) }),
+            this.text('product.price', lang, { price: formatPriceLabel(product) }),
             this.text('product.stock', lang, { stock: product.stock }),
             this.text('product.delivery', lang, {
                 delivery: this.describeDelivery(product.deliveryMode, lang),
@@ -467,7 +469,7 @@ export class TelegramService {
             return;
         }
 
-        const priceMap = this.productService.parsePriceMap(product.price, product.defaultCurrency);
+        const priceMap = parsePriceMap(product.price, product.defaultCurrency);
         const unitAmount = priceMap[product.defaultCurrency] ?? Number(Object.values(priceMap)[0] ?? 0);
         const currency = product.defaultCurrency;
         const now = dayjs().toISOString();
@@ -495,7 +497,7 @@ export class TelegramService {
             await this.orderService.createDeliveredOrder({
                 orderId,
                 orderSn,
-                userId: profile.userId,
+                uid: profile.uid,
                 product,
                 quantity,
                 unitAmount,
@@ -644,7 +646,7 @@ export class TelegramService {
      * @param originMessage Optional message to edit.
      */
     private async showSupport(chatId: number, lang: LanguageCode, originMessage?: TelegramMessage) {
-        const supportUrl = this.env.BASE_URL ? `${this.env.BASE_URL}/support` : 'https://t.me';
+        const supportUrl = this.c.env.BASE_URL ? `${this.c.env.BASE_URL}/support` : 'https://t.me';
         const lines = [
             this.text('support.title', lang),
             this.text('support.body', lang, { url: supportUrl }),

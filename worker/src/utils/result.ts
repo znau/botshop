@@ -1,9 +1,19 @@
+import { ApiCode, ApiMessage } from '@/enum/apiCodes';
+
 const result = {
-	ok(data) {
-		return { code: 200, message: 'success', data: data ? data : null };
+	ok<Data = unknown>(data?: Data | null) {
+		return {
+			code: ApiCode.SUCCESS,
+			message: ApiMessage[ApiCode.SUCCESS],
+			data: data ?? null,
+		};
 	},
-	fail(message, code = 500) {
-		return { code, message };
-	}
+	fail(code: ApiCode, message?: string) {
+		return {
+			code,
+			message: message ?? ApiMessage[code],
+		};
+	},
 };
+
 export default result;

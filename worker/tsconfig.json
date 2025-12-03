@@ -8,6 +8,10 @@
 		"allowJs": true,
 		"resolveJsonModule": true,
 		"moduleDetection": "force",
+    	"baseUrl": "./",
+		"paths": {
+			"@/*": ["src/*"]
+		},
 		/* Strictness */
 		"noImplicitAny": false,
 		"noImplicitThis": true,

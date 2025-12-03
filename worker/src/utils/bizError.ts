@@ -1,7 +1,11 @@
+import { ApiCode } from '@/enum/apiCodes';
+
 class BizError extends Error {
-	constructor(message, code) {
+	code: ApiCode;
+
+	constructor(message: string, code: ApiCode = ApiCode.INTERNAL_ERROR) {
 		super(message);
-		this.code = code ? code : 501;
+		this.code = code;
 		this.name = 'BizError';
 	}
 }
