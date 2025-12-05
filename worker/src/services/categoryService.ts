@@ -1,14 +1,27 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
+import dayjs from 'dayjs';
+import { v4 as uuidv4 } from 'uuid';
 import { createDb } from '../db';
 import { categories, products } from '../db/schema';
 import { CacheKey } from '../enum/cacheKey';
 import { KvCache } from '../utils/cache';
 import type { AppContext, CatalogNode, CatalogPayload } from '@/types';
 import { ProductService, serializeProduct } from './productService';
+import BizError from '@/utils/bizError';
+import { ApiCode } from '@/enum/apiCodes';
 
 export type CategoryRecord = typeof categories.$inferSelect;
 export type ProductRecord = typeof products.$inferSelect;
 export type CategoryWithProducts = { category: CategoryRecord; products: ProductRecord[] };
+export type AdminCategoryInput = {
+    name: string;
+    description?: string | null;
+    emoji?: string | null;
+    parentId?: string | null;
+    sort?: number;
+    isActive?: boolean;
+};
 
 /**
  * Centralizes category/catalog reads and keeps a KV cache in sync with the database.
@@ -138,6 +151,89 @@ export class CategoryService {
             };
         };
         return roots.map(buildNode);
+    }
+
+    async listAllCategoriesFlat() {
+        return this.db
+            .select()
+            .from(categories)
+            .orderBy(asc(categories.sort), asc(categories.createdAt));
+    }
+
+    async getCategoryById(categoryId: string) {
+        const [record] = await this.db.select().from(categories).where(eq(categories.id, categoryId)).limit(1);
+        return record ?? null;
+    }
+
+    async createCategory(input: AdminCategoryInput) {
+        const now = dayjs().toISOString();
+        const id = uuidv4();
+        await this.db.insert(categories).values({
+            id,
+            name: input.name,
+            description: input.description ?? null,
+            emoji: input.emoji ?? null,
+            parentId: input.parentId ?? null,
+            sort: input.sort ?? 0,
+            isActive: input.isActive === false ? 0 : 1,
+            createdAt: now,
+            updatedAt: now,
+        });
+        await this.invalidateCatalogCache();
+        return this.getCategoryById(id);
+    }
+
+    async updateCategory(categoryId: string, input: Partial<AdminCategoryInput>) {
+        const existing = await this.getCategoryById(categoryId);
+        if (!existing) {
+            throw new BizError('分类不存在', ApiCode.NOT_FOUND);
+        }
+        const now = dayjs().toISOString();
+        await this.db
+            .update(categories)
+            .set({
+                name: input.name ?? existing.name,
+                description: input.description ?? existing.description,
+                emoji: input.emoji ?? existing.emoji,
+                parentId: input.parentId ?? existing.parentId,
+                sort: input.sort ?? existing.sort,
+                isActive: input.isActive === undefined ? existing.isActive : input.isActive ? 1 : 0,
+                updatedAt: now,
+            })
+            .where(eq(categories.id, categoryId));
+        await this.invalidateCatalogCache(categoryId);
+        return this.getCategoryById(categoryId);
+    }
+
+    async deleteCategory(categoryId: string) {
+        const existing = await this.getCategoryById(categoryId);
+        if (!existing) {
+            throw new BizError('分类不存在', ApiCode.NOT_FOUND);
+        }
+        const [child] = await this.db
+            .select({ count: sql<number>`count(*)` })
+            .from(categories)
+            .where(eq(categories.parentId, categoryId));
+        if ((child?.count ?? 0) > 0) {
+            throw new BizError('请先删除子分类', ApiCode.CONFLICT);
+        }
+        await this.db.delete(categories).where(eq(categories.id, categoryId));
+        await this.invalidateCatalogCache(categoryId);
+    }
+
+    private async invalidateCatalogCache(categoryId?: string) {
+        const kv = this.c.env.BOTSHOP_KV;
+        if (!kv) {
+            return;
+        }
+        try {
+            await kv.delete(CacheKey.CATALOG_CATEGORIES);
+            if (categoryId) {
+                await kv.delete(CacheKey.catalogCategory(categoryId));
+            }
+        } catch (error) {
+            console.warn('catalog cache invalidation failed', error);
+        }
     }
 
 }

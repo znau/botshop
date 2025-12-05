@@ -21,7 +21,12 @@ declare global {
 }
 
 export type AppVariables = {
-	adminUser?: string;
+	adminUser?: {
+		id: string;
+		username: string;
+		roleId: string;
+		permissions: string[];
+	};
 	authUser?: {
 		uid: string;
 		nickname: string;

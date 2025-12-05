@@ -1,8 +1,9 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, like, or, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import { createDb } from '../db';
-import { orders, products } from '../db/schema';
+import { orders, products, users } from '../db/schema';
 import { parsePriceMap, ProductService, serializeProduct } from './productService';
-import { AppContext, CreateOrderInput, OrderCreationInput, OrderReceipt, OrderSummary } from '@/types';
+import { AppContext, CreateOrderInput, OrderCreationInput, OrderReceipt, OrderSummary, OrderStatus } from '@/types';
 import BizError from '@/utils/bizError';
 import { ApiCode } from '@/enum/apiCodes';
 import dayjs from 'dayjs';
@@ -11,6 +12,19 @@ import { v4 as uuidv4 } from 'uuid';
 export type LatestOrderRow = {
     order: typeof orders.$inferSelect;
     productTitle: string;
+};
+
+export type AdminOrderListOptions = {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    search?: string;
+};
+
+export type AdminOrderRow = {
+    order: typeof orders.$inferSelect;
+    product: typeof products.$inferSelect | null;
+    user: typeof users.$inferSelect | null;
 };
 
 /**
@@ -148,6 +162,106 @@ export class OrderService {
             instructions: product.deliveryInstructions,
             attachment,
         };
+    }
+
+    async listOrdersForAdmin(options: AdminOrderListOptions = {}) {
+        const page = Math.max(1, options.page ?? 1);
+        const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20));
+        const filters: SQL[] = [];
+        if (options.status) {
+            filters.push(eq(orders.status, options.status));
+        }
+        if (options.search) {
+            const keyword = `%${options.search.trim()}%`;
+            filters.push(
+                or(
+                    like(orders.orderSn, keyword),
+                    like(products.title, keyword),
+                    like(users.nickname, keyword),
+                ),
+            );
+        }
+        const whereExpr = filters.length ? and(...filters) : undefined;
+
+        let countQuery = this.db
+            .select({ count: sql<number>`count(*)` })
+            .from(orders)
+            .leftJoin(products, eq(orders.productId, products.id))
+            .leftJoin(users, eq(orders.uid, users.id));
+        if (whereExpr) {
+            countQuery = countQuery.where(whereExpr);
+        }
+        const [countRow] = await countQuery;
+
+        let listQuery = this.db
+            .select({ order: orders, product: products, user: users })
+            .from(orders)
+            .leftJoin(products, eq(orders.productId, products.id))
+            .leftJoin(users, eq(orders.uid, users.id))
+            .orderBy(desc(orders.createdAt))
+            .limit(pageSize)
+            .offset((page - 1) * pageSize);
+        if (whereExpr) {
+            listQuery = listQuery.where(whereExpr);
+        }
+        const rows = await listQuery;
+        return {
+            page,
+            pageSize,
+            total: countRow?.count ?? 0,
+            items: rows.map((row) => this.serializeAdminOrder(row)),
+        };
+    }
+
+    async getOrderDetailForAdmin(orderId: string) {
+        const [row] = await this.db
+            .select({ order: orders, product: products, user: users })
+            .from(orders)
+            .leftJoin(products, eq(orders.productId, products.id))
+            .leftJoin(users, eq(orders.uid, users.id))
+            .where(eq(orders.id, orderId))
+            .limit(1);
+        return row ? this.serializeAdminOrder(row) : null;
+    }
+
+    async updateOrderStatus(orderId: string, status: OrderStatus) {
+        const existing = await this.getOrderDetailForAdmin(orderId);
+        if (!existing) {
+            throw new BizError('订单不存在', ApiCode.NOT_FOUND);
+        }
+        await this.db
+            .update(orders)
+            .set({ status, updatedAt: dayjs().toISOString() })
+            .where(eq(orders.id, orderId));
+        return this.getOrderDetailForAdmin(orderId);
+    }
+
+    private serializeAdminOrder(row: AdminOrderRow) {
+        return {
+            id: row.order.id,
+            orderSn: row.order.orderSn,
+            status: row.order.status,
+            currency: row.order.currency,
+            totalAmount: row.order.totalAmount,
+            unitAmount: row.order.unitAmount,
+            quantity: row.order.quantity,
+            productId: row.order.productId,
+            productTitle: row.product?.title ?? '',
+            userId: row.order.uid,
+            userNickname: row.user?.nickname ?? '',
+            createdAt: row.order.createdAt,
+            updatedAt: row.order.updatedAt,
+            payment: this.safeParseJson(row.order.paymentJson),
+        };
+    }
+
+    private safeParseJson(raw: string) {
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            console.warn('order payment parse failed', error);
+            return null;
+        }
     }
 }
 

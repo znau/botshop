@@ -1,0 +1,30 @@
+{
+  "name": "botshop-admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5174",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vueuse/core": "^11.1.0",
+    "axios": "^1.7.9",
+    "botshop-workspace": "file:..",
+    "naive-ui": "^2.39.0",
+    "pinia": "^2.2.6",
+    "vfonts": "^0.0.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.0",
+    "@vitejs/plugin-vue": "^5.1.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "~5.6.2",
+    "vite": "^5.4.11"
+  }
+}

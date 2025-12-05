@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
-import { eq } from 'drizzle-orm';
+import { desc, eq, like, or, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import { createDb } from '../db';
 import { userRegisters, users } from '../db/schema';
 import type { AppContext, TelegramUserPayload } from '../types';
@@ -17,6 +18,12 @@ export const DEFAULT_LANGUAGE: LanguageCode = 'en';
 export type UserProfile = {
     register: typeof userRegisters.$inferSelect;
     user: typeof users.$inferSelect;
+};
+
+export type AdminUserListOptions = {
+    page?: number;
+    pageSize?: number;
+    search?: string;
 };
 
 export type UserCredentials = {
@@ -237,6 +244,61 @@ export class UserService {
         });
 
         return { uid, username: normalizedUsername, language, isNew: true };
+    }
+
+    async listUsersForAdmin(options: AdminUserListOptions = {}) {
+        const page = Math.max(1, options.page ?? 1);
+        const pageSize = Math.min(100, Math.max(1, options.pageSize ?? 20));
+        const filters: SQL[] = [];
+        if (options.search) {
+            const keyword = `%${options.search.trim()}%`;
+            filters.push(or(like(users.nickname, keyword), like(userRegisters.username, keyword)));
+        }
+        const whereExpr = filters.length ? or(...filters) : undefined;
+        let countQuery = this.db
+            .select({ count: sql<number>`count(*)` })
+            .from(users)
+            .leftJoin(userRegisters, eq(userRegisters.uid, users.id));
+        if (whereExpr) {
+            countQuery = countQuery.where(whereExpr);
+        }
+        const [countRow] = await countQuery;
+        let listQuery = this.db
+            .select({ user: users, register: userRegisters })
+            .from(users)
+            .leftJoin(userRegisters, eq(userRegisters.uid, users.id))
+            .orderBy(desc(users.createdAt))
+            .limit(pageSize)
+            .offset((page - 1) * pageSize);
+        if (whereExpr) {
+            listQuery = listQuery.where(whereExpr);
+        }
+        const rows = await listQuery;
+        return {
+            page,
+            pageSize,
+            total: countRow?.count ?? 0,
+            items: rows.map((row) => ({
+                id: row.user.id,
+                nickname: row.user.nickname,
+                username: row.register?.username,
+                isBlocked: row.user.isBlocked === 1,
+                language: row.register?.language,
+                lastInteractionAt: row.user.lastInteractionAt,
+                createdAt: row.user.createdAt,
+            })),
+        };
+    }
+
+    async toggleUserBlock(uid: string, isBlocked: boolean) {
+        const [record] = await this.db.select().from(users).where(eq(users.id, uid)).limit(1);
+        if (!record) {
+            throw new BizError('用户不存在', ApiCode.NOT_FOUND);
+        }
+        await this.db
+            .update(users)
+            .set({ isBlocked: isBlocked ? 1 : 0, updatedAt: dayjs().toISOString() })
+            .where(eq(users.id, uid));
     }
 
     /**

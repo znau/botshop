@@ -21,9 +21,6 @@ dist
 *.sln
 *.sw?
 
-mail-vue/node_modules
-mail-vue/dist
-.wrangler
-.venv
+worker/.wrangler
 worker/public/**
 !worker/public/.gitkeep

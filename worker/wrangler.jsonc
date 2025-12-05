@@ -42,6 +42,7 @@
 	],
 	"vars": {
 		"BASE_URL": "https://www.guateng.cc",
+		"ADMIN_URL": "https://admin.guateng.cc",
 		"MEDIA_PUBLIC_BASE": "https://static.guateng.cc",
 		"TELEGRAM_BOT_TOKEN": "8334565225:AAFENOb2KWEJzY1GdoryggY1a8BEgIIxJIo",
 		"TELEGRAM_SECRET_TOKEN": "sfxeJgqfFbsnabTtaYgWplaaamUWvJueKwsTeAPCiZY",
@@ -50,7 +51,25 @@
 		"PAYMENT_WEBHOOK_SECRET": "",
 		"PAYMENT_GATEWAY_URL": "",
 		"PAYMENT_API_KEY": ""
-	}
+	},
+	/**
+	 * 路由配置 (可选)
+	 * 如果使用子域名分离，在 Cloudflare Dashboard 中配置路由：
+	 * - www.your-domain.com/* -> botshop worker
+	 * - admin.your-domain.com/* -> botshop worker
+	 * 
+	 * 或在此处配置（取消注释并修改域名）：
+	 */
+	// "routes": [
+	//   {
+	//     "pattern": "www.guateng.cc/*",
+	//     "zone_name": "guateng.cc"
+	//   },
+	//   {
+	//     "pattern": "admin.guateng.cc/*",
+	//     "zone_name": "guateng.cc"
+	//   }
+	// ]
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

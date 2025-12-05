@@ -1,0 +1,55 @@
+:root {
+  font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1f2d3d;
+  background-color: #f5f6fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #f5f6fb;
+}
+
+#app {
+  height: 100%;
+}
+
+.admin-layout {
+  min-height: 100vh;
+  background-color: #f5f6fb;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background-color: #fff;
+}
+
+.admin-content {
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  background-color: #f5f6fb;
+}
+
+.sidebar-logo {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-weight: 700;
+  font-size: 18px;
+  color: #1f2d3d;
+}
+
+.full-height-layout {
+  min-height: 100vh;
+}

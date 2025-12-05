@@ -87,3 +87,45 @@ export const orders = createTable('orders', {
   userIdx: index('idx_orders_user').on(table.uid),
   statusIdx: index('idx_orders_status').on(table.status),
 }));
+
+export const adminRoles = createTable('admin_roles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  permissions: text('permissions').notNull().default('[]'),
+  isSystem: integer('is_system').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+export const adminUsers = createTable('admin_users', {
+  id: text('id').primaryKey(),
+  username: text('username').notNull(),
+  password: text('password').notNull(),
+  salt: text('salt').notNull(),
+  nickname: text('nickname').notNull(),
+  avatar: text('avatar').notNull(),
+  roleId: text('role_id').notNull().references(() => adminRoles.id, { onDelete: 'restrict' }),
+  isActive: integer('is_active').notNull().default(1),
+  lastLoginAt: text('last_login_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => ({
+  usernameIdx: uniqueIndex('idx_admin_users_username').on(table.username),
+}));
+
+export const adminMenus = createTable('admin_menus', {
+  id: text('id').primaryKey(),
+  parentId: text('parent_id').references(() => adminMenus.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  path: text('path').notNull(),
+  icon: text('icon'),
+  component: text('component'),
+  permission: text('permission'),
+  sort: integer('sort').notNull().default(0),
+  isVisible: integer('is_visible').notNull().default(1),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => ({
+  parentIdx: index('idx_admin_menus_parent').on(table.parentId),
+}));

@@ -7,12 +7,15 @@
     "dev": "wrangler dev --config wrangler.jsonc",
     "start": "wrangler dev",
     "cf-typegen": "wrangler types",
-    "build:web": "npm --prefix ../web run build",
+    "build:shop": "npm --prefix ../web run build",
+    "build:admin": "npm --prefix ../admin-web run build",
+    "build:web": "npm run build:shop && npm run build:admin",
     "sync:assets": "node ./scripts/sync-web-dist.mjs",
     "build:assets": "npm run build:web && npm run sync:assets"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "1.6.0",
+    "botshop-workspace": "file:..",
     "chanfana": "^2.6.3",
     "dayjs": "^1.11.19",
     "drizzle-orm": "^0.42.0",
