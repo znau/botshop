@@ -18,7 +18,6 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/login', name: 'AdminLogin', component: LoginView, meta: { public: true } },
-    { path: '/register', name: 'AdminRegister', component: RegisterView, meta: { public: true } },
     {
       path: '/',
       component: AdminLayout,
@@ -57,8 +56,18 @@ router.beforeEach(async (to) => {
     };
   }
   const required = to.meta?.permission as string | undefined;
-  if (required && !session.permissions.includes(required)) {
-    return session.defaultRoute ?? '/dashboard';
+  if (required) {
+    const hasWildcard = session.permissions.includes('*');
+    const hasPermission = hasWildcard || session.permissions.includes(required);
+    if (!hasPermission) {
+      const fallback = session.defaultRoute ?? '/dashboard';
+      // 避免无限重定向
+      if (to.path !== fallback) {
+        return fallback;
+      }
+      // 如果默认路由也没有权限，返回 403 或其他处理
+      return false;
+    }
   }
   return true;
 });

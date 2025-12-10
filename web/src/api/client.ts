@@ -15,7 +15,7 @@ export function setAuthToken(token: string | null) {
 }
 
 export function unwrap<T>(response: { data: ApiResponse<T> }) {
-  if (response.data.code !== 200) {
+  if (response.data.code !== 0) {
     throw new Error(response.data.message ?? '请求失败');
   }
   return response.data.data;

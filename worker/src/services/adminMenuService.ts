@@ -70,11 +70,12 @@ export class AdminMenuService {
 	async listMenusForPermissions(permissions: string[]): Promise<AdminMenuNode[]> {
 		const tree = await this.listMenuTree();
 		const allowed = new Set(permissions);
+		const hasWildcard = allowed.has('*');
 		const filterTree = (nodes: AdminMenuNode[]): AdminMenuNode[] =>
 			nodes
 				.map((node) => ({ ...node, children: filterTree(node.children) }))
 				.filter((node) => {
-					const hasPermission = !node.permission || allowed.has(node.permission);
+					const hasPermission = !node.permission || hasWildcard || allowed.has(node.permission);
 					const hasVisibleChildren = node.children.length > 0;
 					const shouldDisplay = node.isVisible !== 0 || hasVisibleChildren;
 					return shouldDisplay && (hasPermission || hasVisibleChildren);

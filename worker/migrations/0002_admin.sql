@@ -46,3 +46,21 @@ CREATE TABLE IF NOT EXISTS admin_menus (
 );
 
 CREATE INDEX IF NOT EXISTS idx_admin_menus_parent ON admin_menus(parent_id);
+
+-- 初始化菜单数据
+INSERT INTO admin_menus (id, parent_id, title, path, icon, component, permission, sort, is_visible, created_at, updated_at) VALUES
+-- 一级菜单
+('menu-dashboard', '', '工作台', '/dashboard', 'dashboard', 'DashboardView', 'dashboard:view', 1, 1, datetime('now'), datetime('now')),
+('menu-catalog', '', '商品管理', '/catalog', 'shopping-cart', NULL, NULL, 2, 1, datetime('now'), datetime('now')),
+('menu-orders', '', '订单管理', '/orders', 'receipt', 'OrdersView', 'orders:read', 3, 1, datetime('now'), datetime('now')),
+('menu-users', '', '用户管理', '/users', 'users', 'UsersView', 'users:read', 4, 1, datetime('now'), datetime('now')),
+('menu-system', '', '系统管理', '/system', 'settings', NULL, NULL, 5, 1, datetime('now'), datetime('now')),
+
+-- 商品管理子菜单
+('menu-catalog-categories', 'menu-catalog', '分类管理', '/catalog/categories', 'folder', 'CategoriesView', 'categories:read', 1, 1, datetime('now'), datetime('now')),
+('menu-catalog-products', 'menu-catalog', '商品管理', '/catalog/products', 'package', 'ProductsView', 'products:read', 2, 1, datetime('now'), datetime('now')),
+
+-- 系统管理子菜单
+('menu-system-menus', 'menu-system', '菜单管理', '/system/menus', 'menu', 'MenusView', 'menus:manage', 1, 1, datetime('now'), datetime('now')),
+('menu-system-roles', 'menu-system', '角色管理', '/system/roles', 'shield', 'RolesView', 'roles:manage', 2, 1, datetime('now'), datetime('now')),
+('menu-system-admins', 'menu-system', '管理员管理', '/system/admins', 'user-cog', 'AdminAccountsView', 'admins:manage', 3, 1, datetime('now'), datetime('now'));

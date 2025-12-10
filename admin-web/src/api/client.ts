@@ -16,7 +16,7 @@ export function setAuthToken(token: string | null) {
 
 export async function request<T>(promise: Promise<{ data: ApiResponse<T> }>) {
   const response = await promise;
-  if (response.data.code !== 200) {
+  if (response.data.code !== 0) {
     throw new Error(response.data.message ?? '请求失败');
   }
   return response.data.data;

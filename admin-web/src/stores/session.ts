@@ -13,17 +13,20 @@ const TOKEN_KEY = 'botshop:admin-token';
 
 const findFirstMenuPath = (menus: AdminMenuNode[]): string | null => {
   for (const menu of menus) {
+    // 优先查找子菜单中的第一个叶子节点
     if (menu.children?.length) {
       const childPath = findFirstMenuPath(menu.children);
       if (childPath) {
         return childPath;
       }
     }
-    if (menu.path) {
+    // 如果没有子菜单且有路径，返回当前路径
+    if (menu.path && !menu.children?.length) {
       return menu.path;
     }
   }
-  return null;
+  // 如果所有菜单都有子菜单，返回第一个菜单的路径
+  return menus[0]?.path || null;
 };
 
 export const useSessionStore = defineStore('admin-session', () => {
