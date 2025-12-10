@@ -1,14 +1,43 @@
-export const ADMIN_PERMISSIONS = [
-  { label: '查看仪表盘', value: 'dashboard:view' },
-  { label: '查看分类', value: 'categories:read' },
-  { label: '管理分类', value: 'categories:write' },
-  { label: '查看商品', value: 'products:read' },
-  { label: '管理商品', value: 'products:write' },
-  { label: '查看订单', value: 'orders:read' },
-  { label: '更新订单', value: 'orders:update' },
-  { label: '查看用户', value: 'users:read' },
-  { label: '更新用户', value: 'users:update' },
-  { label: '管理菜单', value: 'menus:manage' },
-  { label: '管理角色', value: 'roles:manage' },
-  { label: '管理管理员', value: 'admins:manage' },
+/**
+ * 权限相关的类型定义和枚举
+ * 权限数据从后端 API 动态获取，这里只保留类型定义
+ */
+
+/**
+ * 权限项
+ */
+export interface PermissionItem {
+	code: string;
+	name: string;
+	description?: string;
+}
+
+/**
+ * 权限分组
+ */
+export interface PermissionGroup {
+	name: string;
+	label: string;
+	permissions: PermissionItem[];
+}
+
+/**
+ * 菜单类型枚举
+ */
+export enum MenuType {
+	DIRECTORY = 'directory', // 目录
+	MENU = 'menu',           // 菜单
+	BUTTON = 'button',       // 按钮
+	IFRAME = 'iframe',       // 内嵌页面
+	LINK = 'link',           // 外链
+}
+
+export const MENU_TYPE_OPTIONS = [
+	{ label: '目录', value: MenuType.DIRECTORY },
+	{ label: '菜单', value: MenuType.MENU },
+	{ label: '按钮', value: MenuType.BUTTON },
+	{ label: '内嵌页面', value: MenuType.IFRAME },
+	{ label: '外链', value: MenuType.LINK },
 ];
+
+

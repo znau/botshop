@@ -69,3 +69,5 @@ export const updateAdminRole = (adminId: string, roleId: string) =>
   request<AdminAccountRecord | null>(client.patch(`/admins/${adminId}/role`, { roleId }));
 export const updateAdminStatus = (adminId: string, isActive: boolean) =>
   request<AdminAccountRecord | null>(client.patch(`/admins/${adminId}/status`, { isActive }));
+
+export const fetchPermissions = () => request<{ groups: Array<{ name: string; label: string; permissions: Array<{ code: string; name: string; description?: string }> }> }>(client.get('/permissions'));

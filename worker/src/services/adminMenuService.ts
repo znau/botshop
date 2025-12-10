@@ -8,6 +8,7 @@ import type { AppContext } from '@/types';
 import BizError from '@/utils/bizError';
 import { ApiCode } from '@/enum/apiCodes';
 import { DEFAULT_ADMIN_MENUS, type AdminMenuSeed } from '@/constants/adminMenus';
+import { hasPermission } from '@/utils/permission';
 
 export type AdminMenuRecord = typeof adminMenus.$inferSelect;
 export type AdminMenuNode = AdminMenuRecord & { children: AdminMenuNode[] };
@@ -16,6 +17,7 @@ export type AdminMenuInput = {
 	parentId?: string | null;
 	title: string;
 	path: string;
+	menuType?: 'directory' | 'menu' | 'button' | 'iframe' | 'link';
 	icon?: string | null;
 	component?: string | null;
 	permission?: string | null;
@@ -67,19 +69,29 @@ export class AdminMenuService {
 		return buildTree(null);
 	}
 
+	/**
+	 * 根据用户权限过滤菜单树
+	 * 使用增强的权限检查工具，支持权限依赖和通配符
+	 */
 	async listMenusForPermissions(permissions: string[]): Promise<AdminMenuNode[]> {
 		const tree = await this.listMenuTree();
-		const allowed = new Set(permissions);
-		const hasWildcard = allowed.has('*');
+		
 		const filterTree = (nodes: AdminMenuNode[]): AdminMenuNode[] =>
 			nodes
 				.map((node) => ({ ...node, children: filterTree(node.children) }))
 				.filter((node) => {
-					const hasPermission = !node.permission || hasWildcard || allowed.has(node.permission);
+					// 检查权限
+					const hasRequiredPermission = !node.permission || hasPermission(permissions, node.permission);
+					
+					// 有子菜单或自己有权限才显示
 					const hasVisibleChildren = node.children.length > 0;
+					
+					// 检查可见性
 					const shouldDisplay = node.isVisible !== 0 || hasVisibleChildren;
-					return shouldDisplay && (hasPermission || hasVisibleChildren);
+					
+					return shouldDisplay && (hasRequiredPermission || hasVisibleChildren);
 				});
+		
 		return filterTree(tree);
 	}
 
@@ -96,6 +108,7 @@ export class AdminMenuService {
 			parentId: input.parentId ?? null,
 			title: input.title,
 			path: input.path,
+			menuType: input.menuType ?? 'menu',
 			icon: input.icon ?? null,
 			component: input.component ?? null,
 			permission: input.permission ?? null,
@@ -119,6 +132,7 @@ export class AdminMenuService {
 				parentId: input.parentId ?? null,
 				title: input.title,
 				path: input.path,
+				menuType: input.menuType ?? existing.menuType,
 				icon: input.icon ?? null,
 				component: input.component ?? null,
 				permission: input.permission ?? null,
@@ -147,6 +161,7 @@ export class AdminMenuService {
 				parentId,
 				title: node.title,
 				path: node.path,
+				menuType: node.menuType ?? 'menu',
 				icon: node.icon ?? null,
 				component: node.component ?? null,
 				permission: node.permission ?? null,

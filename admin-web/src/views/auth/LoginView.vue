@@ -21,10 +21,7 @@ const handleSubmit = async () => {
   await formRef.value?.validate();
   try {
     await session.login({ ...form });
-    console.log('登录成功，menus:', session.menus);
-    console.log('defaultRoute:', session.defaultRoute);
     const redirect = (route.query.redirect as string) ?? session.defaultRoute ?? '/dashboard';
-    console.log('准备跳转到:', redirect);
     await router.push(redirect);
     message.success('登录成功');
   } catch (error) {

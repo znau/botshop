@@ -1,8 +1,11 @@
 import axios from 'axios';
 import type { ApiResponse } from '@/types/api';
 
+// 在开发环境使用代理，生产环境使用完整 URL
+const baseURL = import.meta.env.DEV ? '/api/admin' : (import.meta.env.VITE_API_BASE_URL || '') + '/api/admin';
+
 const client = axios.create({
-  baseURL: '/api/admin',
+  baseURL,
   timeout: 15000,
 });
 

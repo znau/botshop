@@ -29,6 +29,7 @@ export type AdminMenuNode = {
   id: string;
   title: string;
   path: string;
+  menuType?: 'directory' | 'menu' | 'button' | 'iframe' | 'link';
   icon?: string | null;
   component?: string | null;
   permission?: string | null;
@@ -122,6 +123,7 @@ export type UserRecord = {
 export type MenuInput = {
   title: string;
   path: string;
+  menuType?: 'directory' | 'menu' | 'button' | 'iframe' | 'link';
   icon?: string;
   component?: string;
   permission?: string;

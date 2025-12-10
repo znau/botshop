@@ -1,17 +1,29 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useMessage } from 'naive-ui';
 
 import { createRole, deleteRole, listRoles, updateRole } from '@/api/admin';
-import { ADMIN_PERMISSIONS } from '@/constants/permissions';
+import { usePermissionData } from '@/composables/usePermissionData';
 import type { AdminRole } from '@/types/api';
 
 const message = useMessage();
+const { permissionGroups, loading: loadingPermissions } = usePermissionData();
 const roles = ref<AdminRole[]>([]);
 const showModal = ref(false);
 const saving = ref(false);
 const editingId = ref<string | null>(null);
 const form = reactive({ name: '', description: '', permissions: [] as string[] });
+
+// 将权限分组数据转换为扁平列表供 checkbox 使用
+const permissionList = computed(() => {
+  return permissionGroups.value.flatMap(group => 
+    group.permissions.map(perm => ({
+      value: perm.code,
+      label: perm.name,
+      group: group.name
+    }))
+  );
+});
 
 const load = async () => {
   roles.value = await listRoles();
@@ -101,13 +113,20 @@ onMounted(load);
         <n-input v-model:value="form.description" />
       </n-form-item>
       <n-form-item label="权限">
-        <n-checkbox-group v-model:value="form.permissions">
-          <n-space vertical>
-            <n-checkbox v-for="perm in ADMIN_PERMISSIONS" :key="perm.value" :value="perm.value">
-              {{ perm.label }}
-            </n-checkbox>
-          </n-space>
-        </n-checkbox-group>
+        <n-spin :show="loadingPermissions">
+          <n-checkbox-group v-model:value="form.permissions">
+            <n-space vertical>
+              <div v-for="group in permissionGroups" :key="group.name">
+                <n-divider title-placement="left">{{ group.name }}</n-divider>
+                <n-space>
+                  <n-checkbox v-for="perm in group.permissions" :key="perm.code" :value="perm.code">
+                    {{ perm.name }}
+                  </n-checkbox>
+                </n-space>
+              </div>
+            </n-space>
+          </n-checkbox-group>
+        </n-spin>
       </n-form-item>
     </n-form>
     <template #footer>

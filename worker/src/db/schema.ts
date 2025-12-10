@@ -119,6 +119,7 @@ export const adminMenus = createTable('admin_menus', {
   parentId: text('parent_id').references(() => adminMenus.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   path: text('path').notNull(),
+  menuType: text('menu_type').notNull().default('menu'), // directory, menu, button, iframe, link
   icon: text('icon'),
   component: text('component'),
   permission: text('permission'),

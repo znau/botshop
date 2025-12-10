@@ -8,6 +8,7 @@ import type { AppContext } from '@/types';
 import BizError from '@/utils/bizError';
 import { ApiCode } from '@/enum/apiCodes';
 import { ADMIN_PERMISSIONS } from '@/enum/adminPermission';
+import { expandPermissions, mergePermissions } from '@/utils/permission';
 
 export type AdminRoleRecord = typeof adminRoles.$inferSelect;
 export type AdminRoleWithPermissions = AdminRoleRecord & { permissionsList: string[] };
@@ -46,7 +47,7 @@ export class AdminRoleService {
 			id: roleId,
 			name: 'Super Admin',
 			description: '拥有全部权限',
-			permissions: JSON.stringify(ADMIN_PERMISSIONS),
+			permissions: JSON.stringify(['*']),  // 使用通配符表示所有权限
 			isSystem: 1,
 			createdAt: now,
 			updatedAt: now,
@@ -123,9 +124,22 @@ export class AdminRoleService {
 		}
 	}
 
+	/**
+	 * 规范化权限列表
+	 * 1. 验证权限是否合法
+	 * 2. 合并冗余权限（有 manage 就移除其他同资源权限）
+	 * 3. 去重并排序
+	 */
 	private normalizePermissions(permissions: string[]) {
+		// 验证权限合法性
 		const allowed = new Set(ADMIN_PERMISSIONS);
-		return [...new Set(permissions.filter((perm) => allowed.has(perm)))];
+		const valid = permissions.filter((perm) => perm === '*' || allowed.has(perm));
+		
+		// 合并冗余权限
+		const merged = mergePermissions(valid);
+		
+		// 去重
+		return [...new Set(merged)];
 	}
 
 	private equalsPermissions(prev: string[], next: string[]) {
@@ -134,3 +148,4 @@ export class AdminRoleService {
 		return next.every((item) => set.has(item));
 	}
 }
+

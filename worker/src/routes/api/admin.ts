@@ -66,6 +66,7 @@ const productInputSchema = z.object({
 const menuInputSchema = z.object({
 	title: z.string().min(2).max(64),
 	path: z.string().min(1),
+	menuType: z.enum(['directory', 'menu', 'button', 'iframe', 'link']).optional(),
 	icon: z.string().optional(),
 	component: z.string().optional(),
 	permission: z.string().optional(),
@@ -148,6 +149,12 @@ app.get('/api/admin/profile', requireAdmin, async (c) => {
 	);
 });
 
+// Get all available permissions
+app.get('/api/admin/permissions', requireAdmin, async (c: AppContext) => {
+	const { PERMISSION_GROUPS } = await import('@/enum/adminPermission');
+	return c.json(result.ok({ groups: PERMISSION_GROUPS }));
+});
+
 app.get('/api/admin/dashboard', requireAdmin, requirePermission(AdminPermission.DASHBOARD_VIEW), async (c: AppContext) => {
 	const metrics = await buildDashboardMetrics(c);
 	return c.json(result.ok(metrics));
@@ -168,7 +175,7 @@ app.get(
 app.post(
 	'/api/admin/categories',
 	requireAdmin,
-	requirePermission(AdminPermission.CATEGORIES_WRITE),
+	requirePermission(AdminPermission.CATEGORIES_CREATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = categoryInputSchema.safeParse(body);
@@ -184,7 +191,7 @@ app.post(
 app.put(
 	'/api/admin/categories/:categoryId',
 	requireAdmin,
-	requirePermission(AdminPermission.CATEGORIES_WRITE),
+	requirePermission(AdminPermission.CATEGORIES_UPDATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = categoryInputSchema.partial().safeParse(body);
@@ -200,7 +207,7 @@ app.put(
 app.delete(
 	'/api/admin/categories/:categoryId',
 	requireAdmin,
-	requirePermission(AdminPermission.CATEGORIES_WRITE),
+	requirePermission(AdminPermission.CATEGORIES_DELETE),
 	async (c) => {
 		const service = new CategoryService(c);
 		await service.deleteCategory(c.req.param('categoryId'));
@@ -227,7 +234,7 @@ app.get(
 app.post(
 	'/api/admin/products',
 	requireAdmin,
-	requirePermission(AdminPermission.PRODUCTS_WRITE),
+	requirePermission(AdminPermission.PRODUCTS_CREATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = productInputSchema.safeParse(body);
@@ -243,7 +250,7 @@ app.post(
 app.put(
 	'/api/admin/products/:productId',
 	requireAdmin,
-	requirePermission(AdminPermission.PRODUCTS_WRITE),
+	requirePermission(AdminPermission.PRODUCTS_UPDATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = productInputSchema.partial().safeParse(body);
@@ -259,7 +266,7 @@ app.put(
 app.patch(
 	'/api/admin/products/:productId/status',
 	requireAdmin,
-	requirePermission(AdminPermission.PRODUCTS_WRITE),
+	requirePermission(AdminPermission.PRODUCTS_UPDATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = toggleStatusSchema.safeParse(body);
@@ -354,7 +361,7 @@ app.patch(
 app.get(
 	'/api/admin/menus',
 	requireAdmin,
-	requirePermission(AdminPermission.MENUS_MANAGE),
+	requirePermission(AdminPermission.MENUS_READ),
 	async (c) => {
 		const service = new AdminMenuService(c);
 		await service.ensureDefaultMenus();
@@ -366,7 +373,7 @@ app.get(
 app.post(
 	'/api/admin/menus',
 	requireAdmin,
-	requirePermission(AdminPermission.MENUS_MANAGE),
+	requirePermission(AdminPermission.MENUS_CREATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = menuInputSchema.safeParse(body);
@@ -382,7 +389,7 @@ app.post(
 app.put(
 	'/api/admin/menus/:menuId',
 	requireAdmin,
-	requirePermission(AdminPermission.MENUS_MANAGE),
+	requirePermission(AdminPermission.MENUS_UPDATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = menuInputSchema.partial().safeParse(body);
@@ -398,7 +405,7 @@ app.put(
 app.delete(
 	'/api/admin/menus/:menuId',
 	requireAdmin,
-	requirePermission(AdminPermission.MENUS_MANAGE),
+	requirePermission(AdminPermission.MENUS_DELETE),
 	async (c) => {
 		const service = new AdminMenuService(c);
 		await service.deleteMenu(c.req.param('menuId'));
@@ -410,7 +417,7 @@ app.delete(
 app.get(
 	'/api/admin/roles',
 	requireAdmin,
-	requirePermission(AdminPermission.ROLES_MANAGE),
+	requirePermission(AdminPermission.ROLES_READ),
 	async (c) => {
 		const service = new AdminRoleService(c);
 		const roles = await service.listRoles();
@@ -421,7 +428,7 @@ app.get(
 app.post(
 	'/api/admin/roles',
 	requireAdmin,
-	requirePermission(AdminPermission.ROLES_MANAGE),
+	requirePermission(AdminPermission.ROLES_CREATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = roleInputSchema.safeParse(body);
@@ -437,7 +444,7 @@ app.post(
 app.put(
 	'/api/admin/roles/:roleId',
 	requireAdmin,
-	requirePermission(AdminPermission.ROLES_MANAGE),
+	requirePermission(AdminPermission.ROLES_UPDATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = roleInputSchema.partial().safeParse(body);
@@ -453,7 +460,7 @@ app.put(
 app.delete(
 	'/api/admin/roles/:roleId',
 	requireAdmin,
-	requirePermission(AdminPermission.ROLES_MANAGE),
+	requirePermission(AdminPermission.ROLES_DELETE),
 	async (c) => {
 		const service = new AdminRoleService(c);
 		await service.deleteRole(c.req.param('roleId'));
@@ -465,7 +472,7 @@ app.delete(
 app.get(
 	'/api/admin/admins',
 	requireAdmin,
-	requirePermission(AdminPermission.ADMINS_MANAGE),
+	requirePermission(AdminPermission.ADMINS_READ),
 	async (c) => {
 		const service = new AdminAuthService(c);
 		const admins = await service.listAdmins();
@@ -476,7 +483,7 @@ app.get(
 app.post(
 	'/api/admin/admins',
 	requireAdmin,
-	requirePermission(AdminPermission.ADMINS_MANAGE),
+	requirePermission(AdminPermission.ADMINS_CREATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = adminAccountInputSchema.safeParse(body);
@@ -492,7 +499,7 @@ app.post(
 app.patch(
 	'/api/admin/admins/:adminId/role',
 	requireAdmin,
-	requirePermission(AdminPermission.ADMINS_MANAGE),
+	requirePermission(AdminPermission.ADMINS_UPDATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = z.object({ roleId: z.string().min(1) }).safeParse(body);
@@ -508,7 +515,7 @@ app.patch(
 app.patch(
 	'/api/admin/admins/:adminId/status',
 	requireAdmin,
-	requirePermission(AdminPermission.ADMINS_MANAGE),
+	requirePermission(AdminPermission.ADMINS_UPDATE),
 	async (c) => {
 		const body = await c.req.json();
 		const parsed = toggleStatusSchema.safeParse(body);
@@ -543,6 +550,7 @@ function mapMenuNode(node: AdminMenuNode) {
 		id: node.id,
 		title: node.title,
 		path: node.path,
+		menuType: node.menuType,
 		icon: node.icon,
 		component: node.component,
 		permission: node.permission,
