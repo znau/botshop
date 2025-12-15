@@ -1,139 +1,130 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
-import { useMessage } from 'naive-ui';
+import { onMounted, reactive, ref } from 'vue';
+import { message, Modal } from 'ant-design-vue';
+import { adminApi } from '@/api/admin';
+import type { RoleItem } from '@/types/api';
 
-import { createRole, deleteRole, listRoles, updateRole } from '@/api/admin';
-import { usePermissionData } from '@/composables/usePermissionData';
-import type { AdminRole } from '@/types/api';
-
-const message = useMessage();
-const { permissionGroups, loading: loadingPermissions } = usePermissionData();
-const roles = ref<AdminRole[]>([]);
-const showModal = ref(false);
+const roles = ref<RoleItem[]>([]);
+const loading = ref(false);
 const saving = ref(false);
-const editingId = ref<string | null>(null);
-const form = reactive({ name: '', description: '', permissions: [] as string[] });
+const modalOpen = ref(false);
+const editing = ref<RoleItem | null>(null);
+const permissionGroups = ref<Array<{ key: string; label: string; permissions: { code: string; label: string }[] }>>([]);
 
-// 将权限分组数据转换为扁平列表供 checkbox 使用
-const permissionList = computed(() => {
-  return permissionGroups.value.flatMap(group => 
-    group.permissions.map(perm => ({
-      value: perm.code,
-      label: perm.name,
-      group: group.name
-    }))
-  );
+const formState = reactive<{ name: string; description?: string; permissions: string[] }>({
+	name: '',
+	description: '',
+	permissions: [],
 });
 
-const load = async () => {
-  roles.value = await listRoles();
-};
+async function fetchRoles() {
+	loading.value = true;
+	try {
+		roles.value = await adminApi.listRoles();
+	} catch (error: any) {
+		message.error(error?.message || '加载角色失败');
+	} finally {
+		loading.value = false;
+	}
+}
 
-const openModal = (record?: AdminRole) => {
-  if (record) {
-    editingId.value = record.id;
-    Object.assign(form, {
-      name: record.name,
-      description: record.description ?? '',
-      permissions: [...record.permissions],
-    });
-  } else {
-    editingId.value = null;
-    Object.assign(form, { name: '', description: '', permissions: [] });
-  }
-  showModal.value = true;
-};
+async function fetchPermissions() {
+	try {
+		const res = await adminApi.permissions();
+		permissionGroups.value = res.groups || [];
+	} catch (error) {
+		// ignore
+	}
+}
 
-const handleSave = async () => {
-  saving.value = true;
-  try {
-    const payload = { ...form };
-    if (editingId.value) {
-      await updateRole(editingId.value, payload);
-      message.success('角色已更新');
-    } else {
-      await createRole(payload);
-      message.success('角色已创建');
-    }
-    showModal.value = false;
-    await load();
-  } catch (error) {
-    message.error((error as Error).message || '保存失败');
-  } finally {
-    saving.value = false;
-  }
-};
+function openCreate() {
+	Object.assign(formState, { name: '', description: '', permissions: [] });
+	editing.value = null;
+	modalOpen.value = true;
+}
 
-const handleDelete = async (record: AdminRole) => {
-  if (!window.confirm(`确认删除角色「${record.name}」？`)) return;
-  await deleteRole(record.id);
-  message.success('角色已删除');
-  await load();
-};
+function openEdit(record: RoleItem) {
+	editing.value = record;
+	Object.assign(formState, record);
+	modalOpen.value = true;
+}
 
-onMounted(load);
+async function handleSubmit() {
+	saving.value = true;
+	try {
+		if (editing.value) {
+			await adminApi.updateRole(editing.value.id, formState);
+			message.success('已更新');
+		} else {
+			await adminApi.createRole(formState);
+			message.success('已创建');
+		}
+		modalOpen.value = false;
+		fetchRoles();
+	} catch (error: any) {
+		message.error(error?.message || '保存失败');
+	} finally {
+		saving.value = false;
+	}
+}
+
+function confirmDelete(record: RoleItem) {
+	Modal.confirm({
+		title: '删除角色？',
+		content: '删除后关联账号需要重新分配角色',
+		onOk: async () => {
+			await adminApi.deleteRole(record.id);
+			message.success('已删除');
+			fetchRoles();
+		},
+	});
+}
+
+onMounted(() => {
+	fetchRoles();
+	fetchPermissions();
+});
 </script>
 
 <template>
-  <n-card title="角色管理" :bordered="false">
-    <template #action>
-      <n-button type="primary" @click="openModal()">新建角色</n-button>
-    </template>
-    <n-table :single-line="false">
-      <thead>
-        <tr>
-          <th>名称</th>
-          <th>描述</th>
-          <th>权限数</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="role in roles" :key="role.id">
-          <td>{{ role.name }}</td>
-          <td>{{ role.description }}</td>
-          <td>{{ role.permissions.length }}</td>
-          <td>
-            <n-space>
-              <n-button quaternary size="small" @click="openModal(role)">编辑</n-button>
-              <n-button quaternary size="small" @click="handleDelete(role)">删除</n-button>
-            </n-space>
-          </td>
-        </tr>
-      </tbody>
-    </n-table>
-  </n-card>
+	<div>
+		<div style="margin-bottom: 16px">
+			<a-button type="primary" @click="openCreate">新建角色</a-button>
+		</div>
+		<a-table :data-source="roles" :loading="loading" row-key="id" :pagination="false">
+			<a-table-column title="名称" data-index="name" key="name" />
+			<a-table-column title="描述" data-index="description" key="description" />
+			<a-table-column title="权限数量" key="permissions">
+				<template #default="{ record }">{{ record.permissions?.length || 0 }}</template>
+			</a-table-column>
+			<a-table-column title="操作" key="actions">
+				<template #default="{ record }">
+					<a-space>
+						<a-button type="link" @click="openEdit(record)">编辑</a-button>
+						<a-button type="link" danger @click="confirmDelete(record)">删除</a-button>
+					</a-space>
+				</template>
+			</a-table-column>
+		</a-table>
 
-  <n-modal v-model:show="showModal" preset="card" :title="editingId ? '编辑角色' : '新建角色'">
-    <n-form label-placement="top">
-      <n-form-item label="名称">
-        <n-input v-model:value="form.name" />
-      </n-form-item>
-      <n-form-item label="描述">
-        <n-input v-model:value="form.description" />
-      </n-form-item>
-      <n-form-item label="权限">
-        <n-spin :show="loadingPermissions">
-          <n-checkbox-group v-model:value="form.permissions">
-            <n-space vertical>
-              <div v-for="group in permissionGroups" :key="group.name">
-                <n-divider title-placement="left">{{ group.name }}</n-divider>
-                <n-space>
-                  <n-checkbox v-for="perm in group.permissions" :key="perm.code" :value="perm.code">
-                    {{ perm.name }}
-                  </n-checkbox>
-                </n-space>
-              </div>
-            </n-space>
-          </n-checkbox-group>
-        </n-spin>
-      </n-form-item>
-    </n-form>
-    <template #footer>
-      <n-space>
-        <n-button @click="showModal = false">取消</n-button>
-        <n-button type="primary" :loading="saving" @click="handleSave">保存</n-button>
-      </n-space>
-    </template>
-  </n-modal>
+		<a-modal v-model:open="modalOpen" :title="editing ? '编辑角色' : '新建角色'" :confirm-loading="saving" width="720px" @ok="handleSubmit">
+			<a-form layout="vertical">
+				<a-form-item label="名称"><a-input v-model:value="formState.name" /></a-form-item>
+				<a-form-item label="描述"><a-input v-model:value="formState.description" /></a-form-item>
+				<a-form-item label="权限">
+					<a-collapse>
+						<a-collapse-panel v-for="group in permissionGroups" :key="group.key" :header="group.label">
+							<a-checkbox-group v-model:value="formState.permissions">
+								<a-row :gutter="8">
+									<a-col :span="12" v-for="item in group.permissions" :key="item.code" style="margin-bottom: 6px">
+										<a-checkbox :value="item.code">{{ item.label }}</a-checkbox>
+									</a-col>
+								</a-row>
+							</a-checkbox-group>
+						</a-collapse-panel>
+				</a-collapse>
+			</a-form-item>
+		</a-form>
+	</a-modal>
+	</div>
 </template>

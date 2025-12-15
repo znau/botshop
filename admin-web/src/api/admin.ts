@@ -1,73 +1,118 @@
-import client, { request } from './client';
+import http from './client';
 import type {
-  AdminAccountRecord,
-  AdminMenuNode,
-  AdminProfileResponse,
-  AdminRole,
-  CategoryRecord,
-  DashboardMetrics,
-  MenuInput,
-  OrderRecord,
-  Paginated,
-  ProductRecord,
-  RoleInput,
-  UserRecord,
+	AdminAccount,
+	AdminMenu,
+	AdminProfileResponse,
+	AdminUser,
+	CategoryItem,
+	DashboardStats,
+	MenuInput,
+	OrderItem,
+	PaginationResponse,
+	ProductItem,
+	RoleItem,
+	UserItem,
 } from '@/types/api';
 
-export const adminLogin = (payload: { username: string; password: string }) =>
-  request<{ token: string; admin: AdminProfileResponse['admin']; menus?: AdminMenuNode[]; permissions?: string[] }>(
-    client.post('/login', payload),
-  );
-
-export const adminRegister = (payload: { username: string; password: string; nickname?: string }) =>
-  request<{ token: string; admin: AdminProfileResponse['admin']; menus?: AdminMenuNode[]; permissions?: string[] }>(
-    client.post('/register', payload),
-  );
-
-export const fetchAdminProfile = () => request<AdminProfileResponse>(client.get('/profile'));
-export const fetchDashboard = () => request<DashboardMetrics>(client.get('/dashboard'));
-
-export const listCategories = () => request<{ items: CategoryRecord[] }>(client.get('/categories'));
-export const createCategory = (payload: Partial<CategoryRecord>) => request<CategoryRecord>(client.post('/categories', payload));
-export const updateCategory = (id: string, payload: Partial<CategoryRecord>) => request<CategoryRecord>(client.put(`/categories/${id}`, payload));
-export const deleteCategory = (id: string) => request<{ ok: boolean }>(client.delete(`/categories/${id}`));
-
-export const listProducts = (params: { page?: number; pageSize?: number; search?: string; categoryId?: string; isActive?: boolean }) =>
-  request<Paginated<ProductRecord>>(
-    client.get('/products', { params: { ...params, isActive: typeof params.isActive === 'boolean' ? String(params.isActive) : undefined } }),
-  );
-
-export const createProduct = (payload: unknown) => request<ProductRecord | null>(client.post('/products', payload));
-export const updateProduct = (id: string, payload: unknown) => request<ProductRecord | null>(client.put(`/products/${id}`, payload));
-export const toggleProductStatus = (id: string, isActive: boolean) =>
-  request<ProductRecord | null>(client.patch(`/products/${id}/status`, { isActive }));
-
-export const listOrders = (params: { page?: number; pageSize?: number; status?: string; search?: string }) =>
-  request<Paginated<OrderRecord>>(client.get('/orders', { params }));
-export const getOrderDetail = (orderId: string) => request<OrderRecord>(client.get(`/orders/${orderId}`));
-export const updateOrderStatusApi = (orderId: string, status: string) =>
-  request<OrderRecord>(client.patch(`/orders/${orderId}/status`, { status }));
-
-export const listUsers = (params: { page?: number; pageSize?: number; search?: string }) =>
-  request<Paginated<UserRecord>>(client.get('/users', { params }));
-export const toggleUserBlock = (uid: string, isBlocked: boolean) => request(client.patch(`/users/${uid}/block`, { isBlocked }));
-
-export const listMenus = () => request<AdminMenuNode[]>(client.get('/menus'));
-export const createMenu = (payload: MenuInput) => request(client.post('/menus', payload));
-export const updateMenu = (id: string, payload: Partial<MenuInput>) => request(client.put(`/menus/${id}`, payload));
-export const deleteMenu = (id: string) => request(client.delete(`/menus/${id}`));
-
-export const listRoles = () => request<AdminRole[]>(client.get('/roles'));
-export const createRole = (payload: RoleInput) => request<AdminRole>(client.post('/roles', payload));
-export const updateRole = (id: string, payload: Partial<RoleInput>) => request<AdminRole>(client.put(`/roles/${id}`, payload));
-export const deleteRole = (id: string) => request(client.delete(`/roles/${id}`));
-
-export const listAdmins = () => request<AdminAccountRecord[]>(client.get('/admins'));
-export const createAdmin = (payload: { username: string; password: string; nickname?: string; roleId: string; isActive?: boolean }) =>
-  request<AdminAccountRecord | null>(client.post('/admins', payload));
-export const updateAdminRole = (adminId: string, roleId: string) =>
-  request<AdminAccountRecord | null>(client.patch(`/admins/${adminId}/role`, { roleId }));
-export const updateAdminStatus = (adminId: string, isActive: boolean) =>
-  request<AdminAccountRecord | null>(client.patch(`/admins/${adminId}/status`, { isActive }));
-
-export const fetchPermissions = () => request<{ groups: Array<{ name: string; label: string; permissions: Array<{ code: string; name: string; description?: string }> }> }>(client.get('/permissions'));
+export const adminApi = {
+	login(payload: { username: string; password: string }) {
+		return http.post<{ token: string; admin: AdminUser }>('login', payload);
+	},
+	profile() {
+		return http.get<AdminProfileResponse>('profile');
+	},
+	dashboard() {
+		return http.get<DashboardStats>('dashboard');
+	},
+	permissions() {
+		return http.get<{ groups: Array<{ key: string; label: string; permissions: { code: string; label: string }[] }> }>(
+			'permissions',
+		);
+	},
+	// Categories
+	listCategories() {
+		return http.get<{ items: CategoryItem[] }>('categories');
+	},
+	createCategory(payload: Partial<CategoryItem>) {
+		return http.post<CategoryItem>('categories', payload);
+	},
+	updateCategory(categoryId: string, payload: Partial<CategoryItem>) {
+		return http.put<CategoryItem>(`categories/${categoryId}`, payload);
+	},
+	deleteCategory(categoryId: string) {
+		return http.delete<{ ok: boolean }>(`categories/${categoryId}`);
+	},
+	// Products
+	listProducts(params: { page?: number; pageSize?: number; search?: string; categoryId?: string; isActive?: boolean }) {
+		const query: Record<string, unknown> = { ...params };
+		if (typeof params.isActive === 'boolean') {
+			query.isActive = String(params.isActive);
+		}
+		return http.get<PaginationResponse<ProductItem>>('products', { params: query });
+	},
+	createProduct(payload: Partial<ProductItem>) {
+		return http.post<ProductItem>('products', payload);
+	},
+	updateProduct(productId: string, payload: Partial<ProductItem>) {
+		return http.put<ProductItem>(`products/${productId}`, payload);
+	},
+	toggleProductStatus(productId: string, isActive: boolean) {
+		return http.patch<ProductItem>(`products/${productId}/status`, { isActive });
+	},
+	// Orders
+	listOrders(params: { page?: number; pageSize?: number; status?: string; search?: string }) {
+		return http.get<PaginationResponse<OrderItem>>('orders', { params });
+	},
+	getOrderDetail(orderId: string) {
+		return http.get<OrderItem>(`orders/${orderId}`);
+	},
+	updateOrderStatus(orderId: string, status: string, note?: string) {
+		return http.patch<OrderItem>(`orders/${orderId}/status`, { status, note });
+	},
+	// Users
+	listUsers(params: { page?: number; pageSize?: number; search?: string }) {
+		return http.get<PaginationResponse<UserItem>>('users', { params });
+	},
+	toggleUserBlock(uid: string, isBlocked: boolean) {
+		return http.patch<{ ok: boolean }>(`users/${uid}/block`, { isBlocked });
+	},
+	// Menus
+	listMenus() {
+		return http.get<AdminMenu[]>('menus');
+	},
+	createMenu(payload: MenuInput) {
+		return http.post<AdminMenu>('menus', payload);
+	},
+	updateMenu(menuId: string, payload: Partial<MenuInput>) {
+		return http.put<AdminMenu>(`menus/${menuId}`, payload);
+	},
+	deleteMenu(menuId: string) {
+		return http.delete<{ ok: boolean }>(`menus/${menuId}`);
+	},
+	// Roles
+	listRoles() {
+		return http.get<RoleItem[]>('roles');
+	},
+	createRole(payload: Partial<RoleItem>) {
+		return http.post<RoleItem>('roles', payload);
+	},
+	updateRole(roleId: string, payload: Partial<RoleItem>) {
+		return http.put<RoleItem>(`roles/${roleId}`, payload);
+	},
+	deleteRole(roleId: string) {
+		return http.delete<{ ok: boolean }>(`roles/${roleId}`);
+	},
+	// Admin accounts
+	listAdmins() {
+		return http.get<AdminAccount[]>('admins');
+	},
+	createAdmin(payload: { username: string; password: string; nickname?: string; roleId: string; isActive?: boolean }) {
+		return http.post<AdminAccount>('admins', payload);
+	},
+	updateAdminRole(adminId: string, roleId: string) {
+		return http.patch<AdminAccount>(`admins/${adminId}/role`, { roleId });
+	},
+	toggleAdminStatus(adminId: string, isActive: boolean) {
+		return http.patch<AdminAccount>(`admins/${adminId}/status`, { isActive });
+	},
+};

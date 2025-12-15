@@ -1,28 +1,61 @@
-import axios from 'axios';
-import type { ApiResponse } from '@/types/api';
+import axios, { type AxiosRequestConfig } from 'axios';
+import type { ApiResult } from '@/types/api';
 
-// 在开发环境使用代理，生产环境使用完整 URL
-const baseURL = import.meta.env.DEV ? '/api/admin' : (import.meta.env.VITE_API_BASE_URL || '') + '/api/admin';
+let authToken: string | null = null;
+
+export class ApiError extends Error {
+	code: number;
+
+	constructor(message: string, code: number) {
+		super(message);
+		this.code = code;
+	}
+}
+
+export function setApiToken(token: string | null) {
+	authToken = token;
+}
+
+const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 
 const client = axios.create({
-  baseURL,
-  timeout: 15000,
+	baseURL: `${apiBase}/admin`,
+	timeout: 15000,
 });
 
-export function setAuthToken(token: string | null) {
-  if (token) {
-    client.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete client.defaults.headers.common.Authorization;
-  }
+client.interceptors.request.use((config) => {
+	if (authToken) {
+		config.headers = {
+			...config.headers,
+			Authorization: `Bearer ${authToken}`,
+		};
+	}
+	return config;
+});
+
+async function request<T>(config: AxiosRequestConfig) {
+	const response = await client.request<ApiResult<T>>(config);
+	const payload = response.data;
+	if (payload.code !== 0) {
+		throw new ApiError(payload.message, payload.code);
+	}
+	return payload.data;
 }
 
-export async function request<T>(promise: Promise<{ data: ApiResponse<T> }>) {
-  const response = await promise;
-  if (response.data.code !== 0) {
-    throw new Error(response.data.message ?? '请求失败');
-  }
-  return response.data.data;
-}
-
-export default client;
+export default {
+	get<T>(url: string, config?: AxiosRequestConfig) {
+		return request<T>({ url, method: 'GET', ...config });
+	},
+	post<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+		return request<T>({ url, method: 'POST', data, ...config });
+	},
+	put<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+		return request<T>({ url, method: 'PUT', data, ...config });
+	},
+	patch<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+		return request<T>({ url, method: 'PATCH', data, ...config });
+	},
+	delete<T>(url: string, config?: AxiosRequestConfig) {
+		return request<T>({ url, method: 'DELETE', ...config });
+	},
+};

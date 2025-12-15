@@ -1,10 +1,10 @@
 /// <reference types="vite/client" />
 
-declare global {
-  type Recordable<T = any> = Record<string, T>;
-  type Nullable<T> = T | null;
-  type Fn<T = any, R = T> = (...arg: T[]) => R;
-  type ComponentRef = InstanceType<any>;
+interface ImportMetaEnv {
+	readonly VITE_API_BASE?: string;
+	readonly VITE_APP_NAME?: string;
 }
 
-export {};
+interface ImportMeta {
+	readonly env: ImportMetaEnv;
+}

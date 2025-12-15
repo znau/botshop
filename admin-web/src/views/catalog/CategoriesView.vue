@@ -1,140 +1,149 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
-import { useMessage } from 'naive-ui';
+import { reactive, ref, onMounted } from 'vue';
+import { message, Modal } from 'ant-design-vue';
+import { adminApi } from '@/api/admin';
+import type { CategoryItem } from '@/types/api';
 
-import { createCategory, deleteCategory, listCategories, updateCategory } from '@/api/admin';
-import type { CategoryRecord } from '@/types/api';
-
-const message = useMessage();
-const categories = ref<CategoryRecord[]>([]);
 const loading = ref(false);
-const showModal = ref(false);
+const categories = ref<CategoryItem[]>([]);
+const modalOpen = ref(false);
 const saving = ref(false);
-const editing = ref<CategoryRecord | null>(null);
-const form = reactive({ name: '', description: '', parentId: null as string | null, sort: 0, isActive: true });
+const editing = ref<CategoryItem | null>(null);
 
-const load = async () => {
-  loading.value = true;
-  try {
-    const { items } = await listCategories();
-    categories.value = items;
-  } catch (error) {
-    message.error((error as Error).message || '无法加载分类');
-  } finally {
-    loading.value = false;
-  }
-};
+const formState = reactive<Partial<CategoryItem>>({
+	name: '',
+	description: '',
+	emoji: '',
+	parentId: null,
+	sort: 0,
+	isActive: true,
+});
 
-const openCreate = () => {
-  editing.value = null;
-  Object.assign(form, { name: '', description: '', parentId: null, sort: 0, isActive: true });
-  showModal.value = true;
-};
+function resetForm() {
+	Object.assign(formState, {
+		name: '',
+		description: '',
+		emoji: '',
+		parentId: null,
+		sort: 0,
+		isActive: true,
+	});
+	editing.value = null;
+}
 
-const openEdit = (record: CategoryRecord) => {
-  editing.value = record;
-  Object.assign(form, {
-    name: record.name,
-    description: record.description ?? '',
-    parentId: record.parentId ?? null,
-    sort: record.sort,
-    isActive: record.isActive === 1,
-  });
-  showModal.value = true;
-};
+async function fetchCategories() {
+	loading.value = true;
+	try {
+		const res = await adminApi.listCategories();
+		categories.value = res.items || [];
+	} catch (error: any) {
+		message.error(error?.message || '加载分类失败');
+	} finally {
+		loading.value = false;
+	}
+}
 
-const handleSubmit = async () => {
-  saving.value = true;
-  try {
-    const payload = { ...form };
-    if (editing.value) {
-      await updateCategory(editing.value.id, payload);
-      message.success('分类已更新');
-    } else {
-      await createCategory(payload);
-      message.success('分类已创建');
-    }
-    showModal.value = false;
-    await load();
-  } catch (error) {
-    message.error((error as Error).message || '保存失败');
-  } finally {
-    saving.value = false;
-  }
-};
+function openCreate() {
+	resetForm();
+	modalOpen.value = true;
+}
 
-const handleDelete = async (record: CategoryRecord) => {
-  if (!window.confirm(`确认删除分类「${record.name}」？`)) {
-    return;
-  }
-  await deleteCategory(record.id);
-  message.success('分类已删除');
-  await load();
-};
+function openEdit(record: CategoryItem) {
+	editing.value = record;
+	Object.assign(formState, record);
+	modalOpen.value = true;
+}
 
-onMounted(load);
+async function handleSubmit() {
+	saving.value = true;
+	try {
+		if (editing.value) {
+			await adminApi.updateCategory(editing.value.id, formState);
+			message.success('更新成功');
+		} else {
+			await adminApi.createCategory(formState);
+			message.success('创建成功');
+		}
+		modalOpen.value = false;
+		await fetchCategories();
+	} catch (error: any) {
+		message.error(error?.message || '保存失败');
+	} finally {
+		saving.value = false;
+	}
+}
+
+async function handleDelete(record: CategoryItem) {
+	Modal.confirm({
+		title: '确认删除该分类吗？',
+		content: '该操作不可撤销',
+		onOk: async () => {
+			await adminApi.deleteCategory(record.id);
+			message.success('已删除');
+			fetchCategories();
+		},
+	});
+}
+
+onMounted(fetchCategories);
 </script>
 
 <template>
-  <n-card title="分类管理" :bordered="false">
-    <template #action>
-      <n-button type="primary" @click="openCreate">新建分类</n-button>
-    </template>
-    <n-spin :show="loading">
-      <n-table :single-line="false">
-        <thead>
-          <tr>
-            <th>名称</th>
-            <th>上级</th>
-            <th>排序</th>
-            <th>状态</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="record in categories" :key="record.id">
-            <td>{{ record.name }}</td>
-            <td>{{ record.parentId ?? '-' }}</td>
-            <td>{{ record.sort }}</td>
-            <td>
-              <n-tag type="success" v-if="record.isActive === 1">启用</n-tag>
-              <n-tag type="default" v-else>停用</n-tag>
-            </td>
-            <td>
-              <n-space>
-                <n-button quaternary size="small" @click="openEdit(record)">编辑</n-button>
-                <n-button quaternary size="small" @click="handleDelete(record)">删除</n-button>
-              </n-space>
-            </td>
-          </tr>
-        </tbody>
-      </n-table>
-    </n-spin>
-  </n-card>
+	<div>
+		<div style="margin-bottom: 16px">
+			<a-button type="primary" @click="openCreate">新建分类</a-button>
+		</div>
+		<a-table :data-source="categories" :loading="loading" row-key="id" :pagination="false">
+			<a-table-column title="名称" data-index="name" key="name" />
+			<a-table-column title="表情" key="emoji">
+				<template #default="{ record }">
+					{{ record.emoji }}
+				</template>
+			</a-table-column>
+			<a-table-column title="上级" key="parentId">
+				<template #default="{ record }">
+					{{ record.parentId ? categories.find((c) => c.id === record.parentId)?.name : '-' }}
+				</template>
+			</a-table-column>
+			<a-table-column title="排序" data-index="sort" key="sort" />
+			<a-table-column title="状态" key="isActive">
+				<template #default="{ record }">
+					<a-tag :color="record.isActive === false ? 'red' : 'green'">{{ record.isActive === false ? '停用' : '启用' }}</a-tag>
+				</template>
+			</a-table-column>
+			<a-table-column title="操作" key="actions">
+				<template #default="{ record }">
+					<a-space>
+						<a-button type="link" @click="openEdit(record)">编辑</a-button>
+						<a-button type="link" danger @click="handleDelete(record)">删除</a-button>
+					</a-space>
+				</template>
+			</a-table-column>
+		</a-table>
 
-  <n-modal v-model:show="showModal" preset="card" :title="editing ? '编辑分类' : '新建分类'">
-    <n-form label-placement="top">
-      <n-form-item label="名称">
-        <n-input v-model:value="form.name" placeholder="请输入分类名称" />
-      </n-form-item>
-      <n-form-item label="描述">
-        <n-input v-model:value="form.description" placeholder="描述，可选" type="textarea" />
-      </n-form-item>
-      <n-form-item label="上级分类 ID">
-        <n-input v-model:value="form.parentId" placeholder="无上级可留空" />
-      </n-form-item>
-      <n-form-item label="排序">
-        <n-input-number v-model:value="form.sort" :min="0" />
-      </n-form-item>
-      <n-form-item label="状态">
-        <n-switch v-model:value="form.isActive" />
-      </n-form-item>
-    </n-form>
-    <template #footer>
-      <n-space>
-        <n-button @click="showModal = false">取消</n-button>
-        <n-button type="primary" :loading="saving" @click="handleSubmit">保存</n-button>
-      </n-space>
-    </template>
-  </n-modal>
+		<a-modal v-model:open="modalOpen" :title="editing ? '编辑分类' : '新建分类'" :confirm-loading="saving" @ok="handleSubmit">
+			<a-form layout="vertical">
+				<a-form-item label="名称">
+					<a-input v-model:value="formState.name" placeholder="请输入分类名称" />
+				</a-form-item>
+				<a-form-item label="描述">
+					<a-input v-model:value="formState.description" placeholder="可选" />
+				</a-form-item>
+				<a-form-item label="表情">
+					<a-input v-model:value="formState.emoji" placeholder="如 😺" />
+				</a-form-item>
+				<a-form-item label="上级分类">
+					<a-select v-model:value="formState.parentId" allow-clear placeholder="选择上级">
+						<a-select-option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</a-select-option>
+					</a-select>
+				</a-form-item>
+				<a-form-item label="排序">
+					<a-input-number v-model:value="formState.sort" style="width: 100%" />
+				</a-form-item>
+				<a-form-item label="状态">
+					<a-switch v-model:checked="formState.isActive" checked-children="启用" un-checked-children="停用" />
+				</a-form-item>
+		</a-form>
+	</a-modal>
+	</div>
 </template>

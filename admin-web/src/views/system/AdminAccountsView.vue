@@ -1,125 +1,106 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { useMessage } from 'naive-ui';
+import { message, Modal } from 'ant-design-vue';
+import { adminApi } from '@/api/admin';
+import type { AdminAccount, RoleItem } from '@/types/api';
 
-import {
-  createAdmin,
-  listAdmins,
-  listRoles,
-  updateAdminRole,
-  updateAdminStatus,
-} from '@/api/admin';
-import type { AdminAccountRecord, AdminRole } from '@/types/api';
-
-const message = useMessage();
-const admins = ref<AdminAccountRecord[]>([]);
-const roles = ref<AdminRole[]>([]);
-const showModal = ref(false);
+const admins = ref<AdminAccount[]>([]);
+const roles = ref<RoleItem[]>([]);
+const loading = ref(false);
+const modalOpen = ref(false);
 const saving = ref(false);
-const form = reactive({ username: '', password: '', nickname: '', roleId: '' });
+const creating = reactive({ username: '', password: '', nickname: '', roleId: '' });
 
-const load = async () => {
-  const [adminList, roleList] = await Promise.all([listAdmins(), listRoles()]);
-  admins.value = adminList;
-  roles.value = roleList;
-  if (!form.roleId && roleList.length) {
-    form.roleId = roleList[0].id;
-  }
-};
+async function fetchData() {
+	loading.value = true;
+	try {
+		const [adminList, roleList] = await Promise.all([adminApi.listAdmins(), adminApi.listRoles()]);
+		admins.value = adminList || [];
+		roles.value = roleList || [];
+	} catch (error: any) {
+		message.error(error?.message || '加载管理员失败');
+	} finally {
+		loading.value = false;
+	}
+}
 
-const openModal = () => {
-  Object.assign(form, { username: '', password: '', nickname: '', roleId: roles.value[0]?.id ?? '' });
-  showModal.value = true;
-};
+function openCreate() {
+	Object.assign(creating, { username: '', password: '', nickname: '', roleId: roles.value[0]?.id || '' });
+	modalOpen.value = true;
+}
 
-const handleCreate = async () => {
-  if (!form.roleId) {
-    message.error('请选择角色');
-    return;
-  }
-  saving.value = true;
-  try {
-    await createAdmin({ ...form });
-    message.success('管理员已创建');
-    showModal.value = false;
-    await load();
-  } catch (error) {
-    message.error((error as Error).message || '创建失败');
-  } finally {
-    saving.value = false;
-  }
-};
+async function handleCreate() {
+	saving.value = true;
+	try {
+		await adminApi.createAdmin({ ...creating });
+		message.success('已创建');
+		modalOpen.value = false;
+		fetchData();
+	} catch (error: any) {
+		message.error(error?.message || '创建失败');
+	} finally {
+		saving.value = false;
+	}
+}
 
-const handleRoleChange = async (record: AdminAccountRecord, roleId: string) => {
-  await updateAdminRole(record.id, roleId);
-  message.success('角色已更新');
-  await load();
-};
+async function changeRole(record: AdminAccount, roleId: string) {
+	await adminApi.updateAdminRole(record.id, roleId);
+	message.success('已更新角色');
+	fetchData();
+}
 
-const handleStatusChange = async (record: AdminAccountRecord, value: boolean) => {
-  await updateAdminStatus(record.id, value);
-  message.success('状态已更新');
-  await load();
-};
+function toggleStatus(record: AdminAccount) {
+	Modal.confirm({
+		title: record.isActive ? '停用该管理员？' : '启用该管理员？',
+		onOk: async () => {
+			await adminApi.toggleAdminStatus(record.id, !record.isActive);
+			message.success('状态已更新');
+			fetchData();
+		},
+	});
+}
 
-onMounted(load);
+onMounted(fetchData);
 </script>
 
 <template>
-  <n-card title="管理员账号" :bordered="false">
-    <template #action>
-      <n-button type="primary" @click="openModal">新建管理员</n-button>
-    </template>
-    <n-table :single-line="false">
-      <thead>
-        <tr>
-          <th>用户名</th>
-          <th>昵称</th>
-          <th>角色</th>
-          <th>状态</th>
-          <th>最后登录</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="admin in admins" :key="admin.id">
-          <td>{{ admin.username }}</td>
-          <td>{{ admin.nickname }}</td>
-          <td>
-            <n-select
-              :value="admin.role.id"
-              :options="roles.map((role) => ({ label: role.name, value: role.id }))"
-              @update:value="(val) => handleRoleChange(admin, val as string)"
-            />
-          </td>
-          <td>
-            <n-switch :value="admin.isActive" @update:value="(val) => handleStatusChange(admin, val)" />
-          </td>
-          <td>{{ admin.lastLoginAt ?? '-' }}</td>
-        </tr>
-      </tbody>
-    </n-table>
-  </n-card>
+	<div>
+		<div style="margin-bottom: 16px">
+			<a-button type="primary" @click="openCreate">新建账号</a-button>
+		</div>
+		<a-table :data-source="admins" :loading="loading" row-key="id" :pagination="false">
+			<a-table-column title="用户名" data-index="username" key="username" />
+			<a-table-column title="昵称" data-index="nickname" key="nickname" />
+			<a-table-column title="角色" key="role">
+				<template #default="{ record }">
+					<a-select :value="record.role?.id" style="width: 160px" @change="(val) => changeRole(record, val)">
+						<a-select-option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</a-select-option>
+					</a-select>
+				</template>
+			</a-table-column>
+			<a-table-column title="状态" key="isActive">
+				<template #default="{ record }">
+					<a-tag :color="record.isActive ? 'green' : 'red'">{{ record.isActive ? '启用' : '停用' }}</a-tag>
+				</template>
+			</a-table-column>
+			<a-table-column title="操作" key="actions">
+				<template #default="{ record }">
+					<a-button type="link" danger @click="toggleStatus(record)">{{ record.isActive ? '停用' : '启用' }}</a-button>
+				</template>
+			</a-table-column>
+		</a-table>
 
-  <n-modal v-model:show="showModal" preset="card" title="新建管理员">
-    <n-form label-placement="top">
-      <n-form-item label="用户名">
-        <n-input v-model:value="form.username" />
-      </n-form-item>
-      <n-form-item label="密码">
-        <n-input v-model:value="form.password" type="password" />
-      </n-form-item>
-      <n-form-item label="昵称">
-        <n-input v-model:value="form.nickname" />
-      </n-form-item>
-      <n-form-item label="角色">
-        <n-select v-model:value="form.roleId" :options="roles.map((role) => ({ label: role.name, value: role.id }))" />
-      </n-form-item>
-    </n-form>
-    <template #footer>
-      <n-space>
-        <n-button @click="showModal = false">取消</n-button>
-        <n-button type="primary" :loading="saving" @click="handleCreate">创建</n-button>
-      </n-space>
-    </template>
-  </n-modal>
+		<a-modal v-model:open="modalOpen" title="新建管理员" :confirm-loading="saving" @ok="handleCreate">
+			<a-form layout="vertical">
+				<a-form-item label="用户名"><a-input v-model:value="creating.username" /></a-form-item>
+				<a-form-item label="密码"><a-input-password v-model:value="creating.password" /></a-form-item>
+				<a-form-item label="昵称"><a-input v-model:value="creating.nickname" /></a-form-item>
+				<a-form-item label="角色">
+					<a-select v-model:value="creating.roleId" placeholder="选择角色">
+						<a-select-option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }}</a-select-option>
+				</a-select>
+			</a-form-item>
+		</a-form>
+	</a-modal>
+	</div>
 </template>
